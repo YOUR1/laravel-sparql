@@ -1,0 +1,47 @@
+{
+    "name": "solid-data-workers/laravel-sparql",
+    "description": "A SPARQL based Eloquent model and Query builder for Laravel",
+    "keywords": ["laravel","eloquent","sparql","database","model","rdf"],
+    "homepage": "https://gitlab.com/solid-data-workers/laravel-sparql",
+    "authors": [
+        {
+            "name": "Roberto Guido",
+            "homepage": "https://madbob.org",
+            "email": "bob@linux.it"
+        }
+    ],
+    "license" : "MIT",
+    "require": {
+        "illuminate/support": "^5.8",
+        "illuminate/container": "^5.8",
+        "illuminate/database": "^5.8",
+        "illuminate/events": "^5.8",
+        "easyrdf/easyrdf": "dev-master"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^6.0|^7.0",
+        "orchestra/testbench": "^3.1",
+        "mockery/mockery": "^1.0",
+        "satooshi/php-coveralls": "^2.0",
+        "doctrine/dbal": "^2.5"
+    },
+    "autoload": {
+        "psr-0": {
+            "SolidDataWorkers\\SPARQL": "src/"
+        }
+    },
+    "autoload-dev": {
+        "classmap": [
+            "tests/TestCase.php",
+            "tests/models",
+            "tests/seeds"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "SolidDataWorkers\\SPARQL\\SPARQLEndpointServiceProvider"
+            ]
+        }
+    }
+}
