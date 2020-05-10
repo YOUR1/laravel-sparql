@@ -6,10 +6,15 @@ use Illuminate\Database\Connection as BaseConnection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
+use MadBob\EasyRDFonGuzzle\HttpClient;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Handler\CurlHandler;
+
 class Connection extends BaseConnection
 {
     protected $connection;
     protected $httpclient;
+    protected $graph;
 
     public function __construct(array $config)
     {
@@ -24,7 +29,7 @@ class Connection extends BaseConnection
     public function rdftype($collection)
     {
         $query = self::query();
-        return $query->from($collection);
+        return $query->from($collection)->graph($this->graph);
     }
 
     /**
@@ -34,12 +39,20 @@ class Connection extends BaseConnection
      */
     public function query()
     {
-        return new Query\Builder($this, $this->getQueryGrammar(), $this->getPostProcessor());
+        $default = new Query\Builder($this, $this->getQueryGrammar(), $this->getPostProcessor());
+        $default->graph($this->graph);
+        return $default;
     }
 
     public function table($table)
     {
         return $this->rdftype($table);
+    }
+
+    public function graph($graph)
+    {
+        $this->graph = $graph;
+        return $this;
     }
 
     private function altBindValues($query, $bindings)
@@ -95,10 +108,11 @@ class Connection extends BaseConnection
                 return true;
             }
 
-            $statement = $this->getPdo()->prepare($query);
-            $this->bindValues($statement, $this->prepareBindings($bindings));
-            $this->recordsHaveBeenModified();
-            return $statement->execute();
+            $binded_query = $this->altBindValues($query, $bindings);
+            echo $query . "\n";
+            echo $binded_query . "\n";
+
+            return $this->connection->query($binded_query);
         });
     }
 
@@ -147,13 +161,33 @@ class Connection extends BaseConnection
 
     protected function createConnection(array $config)
     {
+        $this->httpclient = new HttpClient();
+
         if (isset($config['namespaces'])) {
             foreach($config['namespaces'] as $prefix => $uri) {
                 $this->addRdfNamespace($prefix, $uri);
             }
         }
 
-        $this->httpclient = new \EasyRdf\Http\Client();
+        if (isset($config['graph'])) {
+            $this->graph = $config['graph'];
+        }
+
+        if (isset($config['auth'])) {
+            switch($config['auth']['type']) {
+                case 'basic':
+                    $this->httpclient->setOptions('auth', [$config['auth']['username'], $config['auth']['password'], 'basic']);
+                    break;
+                case 'digest':
+                    $this->httpclient->setOptions('auth', [$config['auth']['username'], $config['auth']['password'], 'digest']);
+                    break;
+            }
+
+            $handler = new CurlHandler();
+            $stack = HandlerStack::create($handler);
+            $this->httpclient->setOptions('handler', $stack);
+        }
+
         \EasyRdf\Http::setDefaultHttpClient($this->httpclient);
 
         return new \EasyRdf\Sparql\Client($config['host']);

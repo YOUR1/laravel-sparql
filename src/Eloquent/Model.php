@@ -19,24 +19,26 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Database\ConnectionResolverInterface as Resolver;
 
+use SolidDataWorkers\SPARQL\Query\Expression;
+
 use Illuminate\Database\Eloquent\Concerns\HasAttributes;
 use Illuminate\Database\Eloquent\Concerns\HasEvents;
 use Illuminate\Database\Eloquent\Concerns\HasGlobalScopes;
 use Illuminate\Database\Eloquent\Concerns\HasRelationships;
-use Illuminate\Database\Eloquent\Concerns\HasTimestamps;
 use Illuminate\Database\Eloquent\Concerns\HidesAttributes;
 use Illuminate\Database\Eloquent\Concerns\GuardsAttributes;
 
 abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, QueueableEntity, UrlRoutable
 {
-    use HasAttributes,
-        HasEvents,
+    use HasEvents,
         HasGlobalScopes,
         HasRelationships,
-        HasTimestamps,
         HidesAttributes,
         GuardsAttributes,
-        ForwardsCalls;
+        ForwardsCalls,
+        HasAttributes {
+            setAttribute as realSetAttribute;
+        }
 
     /**
      * The connection name for the model.
@@ -51,6 +53,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * @var string
      */
     protected $table;
+
+    public $id;
 
     /**
      * The primary key for the model.
@@ -315,6 +319,15 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         }
 
         return false;
+    }
+
+    public function setAttribute($key, $value)
+    {
+        if (!($value instanceof Expression)) {
+            $value = new Expression($value, 'string');
+        }
+
+        $this->realSetAttribute($key, $value);
     }
 
     /**
@@ -712,11 +725,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     protected function finishSave(array $options)
     {
         $this->fireModelEvent('saved', false);
-
-        if ($this->isDirty() && ($options['touch'] ?? true)) {
-            $this->touchOwners();
-        }
-
         $this->syncOriginal();
     }
 
@@ -733,13 +741,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         // operation if the model does not pass validation. Otherwise, we update.
         if ($this->fireModelEvent('updating') === false) {
             return false;
-        }
-
-        // First we need to create a fresh query instance and touch the creation and
-        // update timestamp on the model which are maintained by us for developer
-        // convenience. Then we will just continue saving the model instances.
-        if ($this->usesTimestamps()) {
-            $this->updateTimestamps();
         }
 
         // Once we have run the update operation, we will fire the "updated" event for
@@ -766,8 +767,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     protected function setKeysForSaveQuery(Builder $query)
     {
-        $query->where($this->getKeyName(), '=', $this->getKeyForSaveQuery());
-
+        $query->setSubject($this->getSubject());
         return $query;
     }
 
@@ -782,6 +782,15 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
                         ?? $this->getKey();
     }
 
+    protected function getSubject()
+    {
+        if ($this->exists == false) {
+            $this->id = sprintf('urn:%s:%s', str_replace(':', '.', $this->getTable()), Str::uuid());
+        }
+
+        return $this->id;
+    }
+
     /**
      * Perform a model insert operation.
      *
@@ -794,32 +803,15 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             return false;
         }
 
-        // First we'll need to create a fresh query instance and touch the creation and
-        // update timestamps on this model, which are maintained by us for developer
-        // convenience. After, we will just continue saving these model instances.
-        if ($this->usesTimestamps()) {
-            $this->updateTimestamps();
-        }
-
         // If the model has an incrementing key, we can use the "insertGetId" method on
         // the query builder, which will give us back the final inserted ID for this
         // table from the database. Not all tables have to be incrementing though.
         $attributes = $this->getAttributes();
-
-        if ($this->getIncrementing()) {
-            $this->insertAndSetId($query, $attributes);
+        if (empty($attributes)) {
+            return true;
         }
 
-        // If the table isn't incrementing we'll simply insert these attributes as they
-        // are. These attribute arrays must contain an "id" column previously placed
-        // there by the developer as the manually determined key for these models.
-        else {
-            if (empty($attributes)) {
-                return true;
-            }
-
-            $query->insert($attributes);
-        }
+        $this->setKeysForSaveQuery($query)->insert($attributes);
 
         // We will go ahead and set the exists property to true, so that it is set when
         // the created event is fired, just in case the developer tries to update it
@@ -903,11 +895,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         if ($this->fireModelEvent('deleting') === false) {
             return false;
         }
-
-        // Here, we'll touch the owning models, verifying these timestamps get updated
-        // for the models. This will allow any caching to get broken on the parents
-        // by the timestamp. Then we will go ahead and delete the model instance.
-        $this->touchOwners();
 
         $this->performDeleteOnModel();
 
@@ -1518,6 +1505,23 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         return $this;
     }
 
+    public function usesTimestamps()
+    {
+        return false;
+    }
+
+    private function flatKeyName($key)
+    {
+        if (filter_var($key, FILTER_VALIDATE_URL)) {
+            $key = \EasyRdf\RdfNamespace::shorten($key);
+        }
+        else if (preg_match('/^[^_]*_.*$/', $key)) {
+            $key = preg_replace('/_/', ':', $key, 1);
+        }
+
+        return $key;
+    }
+
     /**
      * Dynamically retrieve attributes on the model.
      *
@@ -1526,6 +1530,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function __get($key)
     {
+        $key = $this->flatKeyName($key);
         return $this->getAttribute($key);
     }
 
@@ -1538,6 +1543,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function __set($key, $value)
     {
+        $key = $this->flatKeyName($key);
         $this->setAttribute($key, $value);
     }
 

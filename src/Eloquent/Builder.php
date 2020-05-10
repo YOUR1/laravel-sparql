@@ -27,7 +27,7 @@ class Builder
     /**
      * The base query builder instance.
      *
-     * @var \Illuminate\Database\Query\Builder
+     * @var \SolidDataWorkers\SPARQL\Query\Builder
      */
     protected $query;
 
@@ -73,7 +73,7 @@ class Builder
      */
     protected $passthru = [
         'insert', 'insertOrIgnore', 'insertGetId', 'insertUsing', 'getBindings', 'toSql', 'dump', 'dd',
-        'exists', 'doesntExist', 'count', 'min', 'max', 'avg', 'average', 'sum', 'getConnection',
+        'exists', 'doesntExist', 'count', 'min', 'max', 'avg', 'average', 'sum', 'getConnection', 'graph', 'getGraph'
     ];
 
     /**
@@ -99,6 +99,11 @@ class Builder
     public function __construct(QueryBuilder $query)
     {
         $this->query = $query;
+    }
+
+    public function setSubject($subject)
+    {
+        $this->query->unique_subject = $subject;
     }
 
     private function defaultColumns()

@@ -3,7 +3,7 @@
 namespace SolidDataWorkers\SPARQL;
 
 use Illuminate\Support\Traits\Macroable;
-use Illuminate\Database\Query\Expression;
+use SolidDataWorkers\SPARQL\Query\Expression;
 
 abstract class Grammar
 {
@@ -39,9 +39,11 @@ abstract class Grammar
         if (filter_var($uri, FILTER_VALIDATE_URL)) {
             return sprintf('<%s>', $uri);
         }
-        else {
-            return $uri;
+        else if (preg_match('/^urn(:[^:]*)*$/', $uri) === 1) {
+            return sprintf('<%s>', $uri);
         }
+
+        return $uri;
     }
 
     /**

@@ -69,10 +69,15 @@ class Processor
                     }
 
                     if (isset($obj->$column_name)) {
-                        $obj->$column_name[] = $value;
+                        if (is_array($obj->$column_name)) {
+                            $obj->$column_name[] = $value;
+                        }
+                        else {
+                            $obj->$column_name = [$obj->$column_name, $value];
+                        }
                     }
                     else {
-                        $obj->$column_name = [$value];
+                        $obj->$column_name = $value;
                     }
                 }
             }
@@ -84,10 +89,7 @@ class Processor
     public function processInsertGetId(Builder $query, $sql, $values, $sequence = null)
     {
         $query->getConnection()->insert($sql, $values);
-
-        $id = $query->getConnection()->getPdo()->lastInsertId($sequence);
-
-        return is_numeric($id) ? (int) $id : $id;
+        return $query->unique_subject;
     }
 
     public function processColumnListing($results)

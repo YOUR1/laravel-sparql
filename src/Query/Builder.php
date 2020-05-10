@@ -47,6 +47,7 @@ class Builder
     public $processor;
 
     public $unique_subject;
+    public $graph = null;
 
     /**
      * The current query value bindings.
@@ -391,8 +392,18 @@ class Builder
     public function from($table)
     {
         $this->from = $table;
-
         return $this;
+    }
+
+    public function graph($graph)
+    {
+        $this->graph = $graph;
+        return $this;
+    }
+
+    public function getGraph()
+    {
+        return $this->graph;
     }
 
     /**
@@ -733,9 +744,15 @@ class Builder
     public function prepareValueAndOperator($value, $operator, $useDefault = false)
     {
         if ($useDefault) {
-            return [$operator, '='];
-        } elseif ($this->invalidOperatorAndValue($operator, $value)) {
+            $value = $operator;
+            $operator = '=';
+        }
+        elseif ($this->invalidOperatorAndValue($operator, $value)) {
             throw new InvalidArgumentException('Illegal operator and value combination.');
+        }
+
+        if (!($value instanceof Expression)) {
+            $value = new Expression($value, 'string');
         }
 
         return [$value, $operator];

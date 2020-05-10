@@ -46,8 +46,8 @@ And add a new sparql connection:
 
 ```php
 'sparql' => [
-    'driver'   => 'sparql',
-    'host'     => env('DB_HOST', 'https://dbpedia.org/sparql'),
+    'driver'     => 'sparql',
+    'host'       => env('DB_HOST', 'https://dbpedia.org/sparql'),
 ],
 ```
 
@@ -55,11 +55,21 @@ Optionally you can define custom RDF namespaces, which will be used in addiction
 
 ```php
 'sparql' => [
-    'driver'   => 'sparql',
-    'host'     => env('DB_HOST', 'https://dbpedia.org/sparql'),
+    'driver'     => 'sparql',
+    'host'       => env('DB_HOST', 'https://dbpedia.org/sparql'),
     'namespaces' => [
         'dbr' => 'http://dbpedia.org/resource/'
     ]
+],
+```
+
+You can also define the default graph name on which run queries:
+
+```php
+'sparql' => [
+    'driver'     => 'sparql',
+    'host'       => env('DB_HOST', 'https://dbpedia.org/sparql'),
+    'graph'      => 'urn:my:named:graph',
 ],
 ```
 
@@ -130,6 +140,22 @@ $people = Person::all();
 $person = Person::find('http://dbpedia.org/resource/Al_Pacino');
 ```
 
+**Handling Properties**
+
+```php
+$name = $person->offsetGet('http://xmlns.com/foaf/0.1/name');
+$name = $person->offsetGet('foaf:name');
+$name = $person->foaf_name;
+```
+
+The last example showcase a shortcut in which namespace and property name are separated with an underscore instead of a colon.
+
+```php
+$person->offsetSet('http://xmlns.com/foaf/0.1/name', 'Al');
+$person->offsetSet('foaf:name', 'Al');
+$person->foaf_name = 'Al';
+```
+
 **Wheres**
 
 ```php
@@ -166,6 +192,14 @@ This actually select elements for which an attribute is not set at all.
 
 ```php
 $places = Place::whereNull('dbo:areaTotal')->get();
+```
+
+**Like**
+
+Acts like the "regex" operator, removing placeholder characters.
+
+```php
+$people = Person::where('rdfs:label', 'like', '%Pacino')->get();
 ```
 
 **Order By**
