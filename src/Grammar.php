@@ -1,5 +1,10 @@
 <?php
 
+/*
+SPDX-FileCopyrightText: 2020, Roberto Guido
+SPDX-License-Identifier: 
+*/
+
 namespace SolidDataWorkers\SPARQL;
 
 use Illuminate\Support\Traits\Macroable;
