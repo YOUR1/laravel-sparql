@@ -1,5 +1,10 @@
 <?php
 
+/*
+SPDX-FileCopyrightText: 2020, Roberto Guido
+SPDX-License-Identifier: MIT
+*/
+
 namespace SolidDataWorkers\SPARQL\Query;
 
 class Expression
