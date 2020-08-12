@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText:  2020, Roberto Guido
+SPDX-License-Identifier: CC-BY-3.0
+-->
+
 Laravel SPARQL
 ==============
 
