@@ -12,11 +12,11 @@
     ],
     "license" : "MIT",
     "require": {
-        "illuminate/support": "^5.8",
-        "illuminate/container": "^5.8",
-        "illuminate/database": "^5.8",
-        "illuminate/events": "^5.8",
-        "madbob/easyrdf-on-guzzle": "^0.1"
+        "illuminate/support": "6.*",
+        "illuminate/container": "6.*",
+        "illuminate/database": "6.*",
+        "illuminate/events": "6.*",
+        "madbob/easyrdf-on-guzzle": "^0.2.0"
     },
     "require-dev": {
         "doctrine/dbal": "^2.5"

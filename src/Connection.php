@@ -13,6 +13,7 @@ use GuzzleHttp\Handler\CurlHandler;
 class Connection extends BaseConnection
 {
     protected $connection;
+    protected $ontology;
     protected $httpclient;
     protected $graph;
 
@@ -44,7 +45,7 @@ class Connection extends BaseConnection
         return $default;
     }
 
-    public function table($table)
+    public function table($table, $as = null)
     {
         return $this->rdftype($table);
     }
@@ -72,12 +73,13 @@ class Connection extends BaseConnection
 
     public function select($query, $bindings = [], $useReadPdo = true)
     {
-        return $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
+        return $this->run($query, $bindings, function ($query, $bindings) {
             if ($this->pretending()) {
                 return [];
             }
 
             $binded_query = $this->altBindValues($query, $bindings);
+
             echo $query . "\n";
             echo $binded_query . "\n";
 
@@ -87,7 +89,7 @@ class Connection extends BaseConnection
 
     public function cursor($query, $bindings = [], $useReadPdo = true)
     {
-        $statement = $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
+        $statement = $this->run($query, $bindings, function ($query, $bindings) {
             if ($this->pretending()) {
                 return [];
             }

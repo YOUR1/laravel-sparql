@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Concerns\HasAttributes;
 use Illuminate\Database\Eloquent\Concerns\HasEvents;
 use Illuminate\Database\Eloquent\Concerns\HasGlobalScopes;
 use Illuminate\Database\Eloquent\Concerns\HasRelationships;
+use Illuminate\Database\Eloquent\Concerns\HasTimestamps;
 use Illuminate\Database\Eloquent\Concerns\HidesAttributes;
 use Illuminate\Database\Eloquent\Concerns\GuardsAttributes;
 
@@ -33,6 +34,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     use HasEvents,
         HasGlobalScopes,
         HasRelationships,
+        HasTimestamps,
         HidesAttributes,
         GuardsAttributes,
         ForwardsCalls,

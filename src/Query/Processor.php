@@ -40,7 +40,7 @@ class Processor
                     $column_name = null;
 
                     foreach($query->wheres as $where) {
-                        if (isset($where['value']) && $where['value'][0] == '?' && substr($where['value'], 1) == $param) {
+                        if (isset($where['value']) && is_string($where['value']) && $where['value'][0] == '?' && substr($where['value'], 1) == $param) {
                             $column_name = $where['column'];
                             break;
                         }

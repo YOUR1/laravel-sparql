@@ -13,6 +13,7 @@ use Illuminate\Support\Traits\ForwardsCalls;
 use Illuminate\Database\Concerns\BuildsQueries;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use SolidDataWorkers\SPARQL\Query\Builder as QueryBuilder;
+use SolidDataWorkers\SPARQL\Query\Expression;
 use Illuminate\Database\Eloquent\Concerns\QueriesRelationships;
 
 /**
@@ -197,12 +198,11 @@ class Builder
     public function whereKey($id)
     {
         if (is_array($id) || $id instanceof Arrayable) {
-            $this->query->whereIn($this->model->getQualifiedKeyName(), $id);
-
+            $this->query->whereIn($this->model->getQualifiedKeyName(), new Expression($id, 'urn'));
             return $this;
         }
 
-        return $this->where($this->model->getQualifiedKeyName(), '=', $id);
+        return $this->where($this->model->getQualifiedKeyName(), '=', new Expression($id, 'urn'));
     }
 
     /**
@@ -235,9 +235,9 @@ class Builder
     {
         if ($column instanceof Closure) {
             $column($query = $this->model->newModelQuery());
-
             $this->query->addNestedWhereQuery($query->getQuery(), $boolean);
-        } else {
+        }
+        else {
             $this->query->where(...func_get_args());
         }
 

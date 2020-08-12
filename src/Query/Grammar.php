@@ -146,7 +146,7 @@ class Grammar extends BaseGrammar
      */
     protected function compileFrom(Builder $query, $table)
     {
-        $query->where('rdf:type', $this->wrapUri($table));
+        $query->where('rdf:type', new Expression($table, 'class'));
         return '';
     }
 
@@ -265,7 +265,7 @@ class Grammar extends BaseGrammar
             case 'not in':
             case 'between':
             case 'not between':
-                $val = '?' . str_random(10);
+                $val = '?' . Str::random(10);
 
                 $where['filters'][] = [
                     'type' => str_replace(' ', '', ucwords($where['operator'])),
@@ -283,7 +283,7 @@ class Grammar extends BaseGrammar
                 $where['value'] = str_replace('####', '%', $where['value']);
 
             case 'regex':
-                $val = '?' . str_random(10);
+                $val = '?' . Str::random(10);
 
                 $where['filters'][] = [
                     'type' => 'Regex',
@@ -296,7 +296,7 @@ class Grammar extends BaseGrammar
                 break;
 
             default:
-                $val = '?' . str_random(10);
+                $val = '?' . Str::random(10);
                 $value = $this->parameter($where['value']);
 
                 $where['filters'][] = [
@@ -383,7 +383,7 @@ class Grammar extends BaseGrammar
      */
     protected function whereNull(Builder $query, $where)
     {
-        $void = '?' . str_random(10);
+        $void = '?' . Str::random(10);
         return 'FILTER NOT EXISTS { ' . $query->unique_subject . ' ' . $this->wrap($where['column']) . ' ' . $void . ' }';
     }
 
@@ -396,7 +396,7 @@ class Grammar extends BaseGrammar
      */
     protected function whereNotNull(Builder $query, $where)
     {
-        $void = '?' . str_random(10);
+        $void = '?' . Str::random(10);
         return 'FILTER EXISTS { ' . $query->unique_subject . ' ' . $this->wrap($where['column']) . ' ' . $void . ' }';
     }
 

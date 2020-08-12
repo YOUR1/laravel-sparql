@@ -35,6 +35,10 @@ abstract class Grammar
      */
     public function wrapUri($uri)
     {
+        if ($uri instanceof Expression) {
+            return $uri->getValue();
+        }
+
         $uri = \EasyRdf\RdfNamespace::expand($uri);
         if (filter_var($uri, FILTER_VALIDATE_URL)) {
             return sprintf('<%s>', $uri);

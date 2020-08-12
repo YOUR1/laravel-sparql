@@ -104,6 +104,20 @@ This will allow you to use the registered alias like:
 class MyModel extends RDFModel {}
 ```
 
+Expressions
+-----------
+
+`SolidDataWorkers\SPARQL\Query\Expression` is an utility class to identify and properly wrap and handle strings of different type: literal strings, URNs, classes and more.
+
+When passing a value to any function of the query builder, any plain string is converted to an Expression wrapping a plain string. To specify an exact type for the string, instanciate your own Expression such as:
+
+```php
+// Doesn't wraps the value within quotes or other
+$e = new Expression('dbr:Philadelphia', 'literal');
+// Explodes the class name and wraps it within angular brackets
+$e = new Expression('foaf:Person', 'class');
+```
+
 Query Builder
 -------------
 
@@ -165,19 +179,19 @@ $places = Place::where('dbo:areaTotal', '>', 10000000000)->get();
 **And Statements**
 
 ```php
-$places = Place::where('dbo:areaTotal', '>', 10000000000)->where('dbo:country', 'dbr:Italy')->get();
+$places = Place::where('dbo:areaTotal', '>', 10000000000)->where('dbo:country', new Expression('dbr:Italy', 'literal'))->get();
 ```
 
 **Or Statements (TODO)**
 
 ```php
-$places = Place::where('dbo:areaTotal', '>', 10000000000)->orWhere('dbo:country', 'dbr:Italy')->get();
+$places = Place::where('dbo:areaTotal', '>', 10000000000)->orWhere('dbo:country', new Expression('dbr:Italy', 'literal'))->get();
 ```
 
 **Using Where In With An Array**
 
 ```php
-$people = Person::whereIn('dbo:birthPlace', ['dbr:New_York_City', 'dbr:Philadelphia'])->get();
+$people = Person::whereIn('dbo:birthPlace', [new Expression('dbr:New_York_City', 'literal'), new Expression('dbr:Philadelphia', 'literal')])->get();
 ```
 
 **Using Where Between**
@@ -219,7 +233,7 @@ $places = Place::distinct()->get('dbo:country');
 Distinct can be combined with **where**:
 
 ```php
-$people = Person::where('dbo:birthPlace', 'dbr:New_York_City')->distinct()->get('dbo:deathPlace');
+$people = Person::where('dbo:birthPlace', new Expression('dbr:New_York_City', 'literal'))->distinct()->get('dbo:deathPlace');
 ```
 
 **Advanced Wheres**
@@ -227,7 +241,7 @@ $people = Person::where('dbo:birthPlace', 'dbr:New_York_City')->distinct()->get(
 ```php
 $places = Place::where('dbo:areaTotal', '>', 10000000000)->orWhere(function($query)
     {
-        $query->where('dbo:country', 'dbr:Italy')
+        $query->where('dbo:country', new Expression('dbr:Italy', 'literal'))
               ->where('dbo:areaTotal', '>', 10000000);
     })
     ->get();
@@ -254,7 +268,7 @@ $sum = Place::sum('dbo:areaTotal');
 Aggregations can be combined with **where**:
 
 ```php
-$sum = Place::where('dbo:country', 'dbr:Italy')->sum('dbo:areaTotal');
+$sum = Place::where('dbo:country', new Expression('dbr:Italy', 'literal'))->sum('dbo:areaTotal');
 ```
 
 ### SPARQL specific operators

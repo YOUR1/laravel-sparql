@@ -208,7 +208,7 @@ class Builder
         $this->connection = $connection;
         $this->grammar = $grammar ?: $connection->getQueryGrammar();
         $this->processor = $processor ?: $connection->getPostProcessor();
-        $this->unique_subject = '?__uri_' . str_random(5);
+        $this->unique_subject = '?__uri_' . Str::random(5);
     }
 
     private function defaultColumns()
@@ -218,7 +218,8 @@ class Builder
 
     private function pushAttribute($attribute)
     {
-        $prop = '?' . str_random(10);
+        $prop = '?' . Str::random(10);
+        $prop = new Expression($prop, 'param');
         $this->where($attribute, $prop);
         return $prop;
     }
@@ -235,7 +236,7 @@ class Builder
             $this->columns = $this->defaultColumns();
         }
         else if ($columns == '*') {
-            $this->whereRaw($this->unique_subject . '?prop ?value');
+            $this->whereRaw($this->unique_subject . ' ?prop ?value');
             $this->columns = [$this->unique_subject, '?prop', '?value'];
         }
         else {
@@ -679,8 +680,6 @@ class Builder
                 $this->wheres[0]['filters'] = [];
             }
 
-            $value = $this->grammar->wrapUri($value);
-
             $this->wheres[0]['filters'][] = [
                 'type' => 'Basic',
                 'attribute' => $this->unique_subject,
@@ -703,9 +702,7 @@ class Builder
             'type', 'column', 'operator', 'value', 'boolean'
         );
 
-        if (! $value instanceof Expression) {
-            $this->addBinding($this->grammar->wrapUri($value), 'where');
-        }
+        $this->addBinding($value, 'where');
 
         return $this;
     }
@@ -2065,7 +2062,9 @@ class Builder
             $wrapper_columns = [];
             $columns = Arr::wrap($columns);
             foreach($columns as $c) {
-                $wrapper_columns[] = $this->pushAttribute($c);;
+                if ( ! $c instanceof Expression) {
+                    $wrapper_columns[] = $this->pushAttribute($c);;
+                }
             }
 
             $columns = $wrapper_columns;
@@ -2478,7 +2477,7 @@ class Builder
     public function sum($column)
     {
         $var = $this->pushAttribute($column);
-        $result = $this->aggregate(__FUNCTION__, [$var]);
+        $result = $this->numericAggregate(__FUNCTION__, [$var]);
 
         return $result ?: 0;
     }
@@ -2525,7 +2524,10 @@ class Builder
                         ->get($columns);
 
         if (! $results->isEmpty()) {
-            return array_change_key_case((array) $results[0])['aggregate'][0];
+            return $results->first()->aggregate;
+        }
+        else {
+            return 0;
         }
     }
 
@@ -2551,7 +2553,7 @@ class Builder
             return 0;
         }
 
-        if (is_int($result) || is_float($result)) {
+        if (is_numeric($result)) {
             return $result;
         }
 
@@ -2904,7 +2906,8 @@ class Builder
 
         if (is_array($value)) {
             $this->bindings[$type] = array_values(array_merge($this->bindings[$type], $value));
-        } else {
+        }
+        else {
             $this->bindings[$type][] = $value;
         }
 
