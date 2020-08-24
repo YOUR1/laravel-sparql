@@ -81,10 +81,12 @@ CLASS;
             return $graph;
         });
 
-        /*
-            TODO: provide a method to manually load an ontology from a file path
-        */
-        $this->graph->parseFile('/home/madbob/Downloads/dbpedia_2014.owl');
+        if (isset($config['ontologies'])) {
+            $others = Arr::wrap($config['ontologies']);
+            foreach($others as $o) {
+                $this->graph->parseFile($o);
+            }
+        }
 
         $this->models_map = [];
 
@@ -96,17 +98,21 @@ CLASS;
             }
         }
 
-        /*
-            TODO: permit to configure basic classes from which generate Models classes
-        */
-        foreach($this->graph->allOfType('http://www.w3.org/2002/07/owl#Class') as $resource) {
-            $class_id = $resource->getUri();
-            $short_class_id = \EasyRdf\RdfNamespace::shorten($class_id);
+        $base_classes = ['http://www.w3.org/2002/07/owl#Class'];
+        if (isset($config['base_classes'])) {
+            $base_classes = Arr::wrap($config['base_classes']);
+        }
 
-            if (!isset($this->models_map[$class_id]) && !isset($this->models_map[$short_class_id])) {
-                $modelname = $this->generateClass($class_id);
-                $this->models_map[$class_id] = $modelname;
-                $this->models_map[$short_class_id] = $modelname;
+        foreach($base_classes as $bc) {
+            foreach($this->graph->allOfType($bc) as $resource) {
+                $class_id = $resource->getUri();
+                $short_class_id = \EasyRdf\RdfNamespace::shorten($class_id);
+
+                if (!isset($this->models_map[$class_id]) && !isset($this->models_map[$short_class_id])) {
+                    $modelname = $this->generateClass($class_id);
+                    $this->models_map[$class_id] = $modelname;
+                    $this->models_map[$short_class_id] = $modelname;
+                }
             }
         }
     }

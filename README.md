@@ -46,16 +46,28 @@ And add a new sparql connection:
 ```php
 'sparql' => [
     'driver'     => 'sparql',
-    'host'       => env('DB_HOST', 'https://dbpedia.org/sparql'),
-],
-```
 
-It is optional, but highly reccomended, to define your RDF namespaces. If you don't, a set of default namespaces is used (the one from EasyRDF) but this widely slows down the initialization of the internal Introspector (see below) at least at the first execution. Many features about attributes access will not work properly for undefined namespaces.
-
-```php
-'sparql' => [
-    'driver'     => 'sparql',
+    /*
+        The SPARQL endpoint
+    */
     'host'       => env('DB_HOST', 'https://dbpedia.org/sparql'),
+
+    /*
+        Optional.
+        Authentication credentials for the SPARQL endpoint.
+        Useful to deal, for example, with a own writable Virtuoso server
+    */
+    'auth'       => [
+        'type' => 'digest',
+        'username' => 'your_username',
+        'password' => 'your_password',
+    ],
+
+    /*
+        It is optional, but highly reccomended, to define your RDF namespaces.
+        If you don't, a set of default namespaces is used (the one from EasyRDF) but this widely slows down the initialization of the internal Introspector (see below) at least at the first execution.
+        Many features about attributes access will not work properly for undefined namespaces.
+    */
     'namespaces' => [
         'owl'    => 'http://www.w3.org/2002/07/owl#',
         'rdf'    => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
@@ -63,16 +75,19 @@ It is optional, but highly reccomended, to define your RDF namespaces. If you do
         'dbo'    => 'http://dbpedia.org/ontology/',
         'schema' => 'http://schema.org/',
         'foaf'   => 'http://xmlns.com/foaf/0.1/',
-    ]
-],
-```
+    ],
 
-You can also define the default graph name on which run queries:
+    /*
+        Optional.
+        If you have other local ontology files to be loaded into the Introspector (e.g. for the full DBPedia ontology), use "ontologies" in the configuration file
+    */
+    'ontologies' => [
+        '/path/to/my/file.owl',
+    ],
 
-```php
-'sparql' => [
-    'driver'     => 'sparql',
-    'host'       => env('DB_HOST', 'https://dbpedia.org/sparql'),
+    /*
+        You can also define the default graph name on which run queries
+    */
     'graph'      => 'urn:my:named:graph',
 ],
 ```
@@ -128,7 +143,7 @@ Eloquent
 
 This package includes a SPARQL enabled Eloquent class that you can use to define models for corresponding RDF classes.
 
-By default, for each basic class (`owl:Class`) found by the Introspector, a new PHP Model class is created, named after his shortened name, and then used by the Builder to instantiate the results fetched from the SPARQL endpoint, such as:
+By default, for each basic class (`owl:Class`, or those defined by the `basic_classes` configuration) found by the Introspector, a new PHP Model class is created, named after his shortened name, and then used by the Builder to instantiate the results fetched from the SPARQL endpoint, such as:
 
 ```php
 namespace SolidDataWorkers\SPARQL\Eloquent;
