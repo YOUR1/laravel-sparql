@@ -16,18 +16,24 @@ class Processor
     {
         $ret = new Collection();
 
+        $introspector = $query->getConnection()->getIntrospector();
         $obj = null;
         $next_column = null;
         $last_id = null;
 
         foreach($results as $row) {
             foreach($row as $param => $value) {
+                $value_index = null;
+
+                if (is_a($value, 'EasyRdf\Literal')) {
+                    $value_index = $value->getLang();
+                }
+
                 $value = (string) $value;
 
                 if ($param == substr($query->unique_subject, 1)) {
                     if ($last_id != $value) {
                         $obj = $ret->where('id', $value)->first();
-
                         if (is_null($obj)) {
                             $obj = (object)[
                                 'id' => $value
@@ -45,7 +51,7 @@ class Processor
                     $column_name = null;
 
                     foreach($query->wheres as $where) {
-                        if (isset($where['value']) && is_string($where['value']) && $where['value'][0] == '?' && substr($where['value'], 1) == $param) {
+                        if (isset($where['value']) && ($where['value'] instanceof Expression) && ($where['value']->getType() == 'param') && ($where['value']->getValue() == '?' . $param)) {
                             $column_name = $where['column'];
                             break;
                         }
@@ -73,17 +79,18 @@ class Processor
                         $ret->push($obj);
                     }
 
-                    if (isset($obj->$column_name)) {
-                        if (is_array($obj->$column_name)) {
-                            $obj->$column_name[] = $value;
-                        }
-                        else {
-                            $obj->$column_name = [$obj->$column_name, $value];
-                        }
+                    if (is_null($value_index)) {
+                        $value = [$value];
                     }
                     else {
-                        $obj->$column_name = $value;
+                        $value = [$value_index => $value];
                     }
+
+                    if (!isset($obj->$column_name)) {
+                        $obj->$column_name = [];
+                    }
+
+                    $obj->$column_name = array_merge($obj->$column_name, $value);
                 }
             }
         }

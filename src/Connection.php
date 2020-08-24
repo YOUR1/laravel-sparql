@@ -18,9 +18,9 @@ use GuzzleHttp\Handler\CurlHandler;
 class Connection extends BaseConnection
 {
     protected $connection;
-    protected $ontology;
     protected $httpclient;
     protected $graph;
+    protected $introspector;
 
     public function __construct(array $config)
     {
@@ -30,6 +30,8 @@ class Connection extends BaseConnection
         $this->useDefaultPostProcessor();
         $this->useDefaultSchemaGrammar();
         $this->useDefaultQueryGrammar();
+
+        $this->introspector = new Query\Introspector($this, $config);
     }
 
     public function rdftype($collection)
@@ -85,7 +87,8 @@ class Connection extends BaseConnection
 
             $binded_query = $this->altBindValues($query, $bindings);
 
-            echo $query . "\n";
+            // echo $query . "\n";
+            // print_r($bindings);
             echo $binded_query . "\n";
 
             return $this->connection->query($binded_query);
@@ -116,8 +119,9 @@ class Connection extends BaseConnection
             }
 
             $binded_query = $this->altBindValues($query, $bindings);
-            echo $query . "\n";
-            echo $binded_query . "\n";
+
+            // echo $query . "\n";
+            // echo $binded_query . "\n";
 
             return $this->connection->query($binded_query);
         });
@@ -171,6 +175,10 @@ class Connection extends BaseConnection
         $this->httpclient = new HttpClient();
 
         if (isset($config['namespaces'])) {
+            foreach(\EasyRdf\RdfNamespace::namespaces() as $prefix => $url) {
+                \EasyRdf\RdfNamespace::delete($prefix);
+            }
+
             foreach($config['namespaces'] as $prefix => $uri) {
                 $this->addRdfNamespace($prefix, $uri);
             }
@@ -215,6 +223,11 @@ class Connection extends BaseConnection
     public function getDriverName()
     {
         return 'sparql';
+    }
+
+    public function getIntrospector()
+    {
+        return $this->introspector;
     }
 
     protected function getDefaultPostProcessor()

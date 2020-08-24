@@ -19,7 +19,7 @@ use Illuminate\Database\Concerns\BuildsQueries;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use SolidDataWorkers\SPARQL\Query\Builder as QueryBuilder;
 use SolidDataWorkers\SPARQL\Query\Expression;
-use Illuminate\Database\Eloquent\Concerns\QueriesRelationships;
+use SolidDataWorkers\SPARQL\Eloquent\Concerns\QueriesRelationships;
 
 /**
  * @property-read HigherOrderBuilderProxy $orWhere
@@ -79,7 +79,7 @@ class Builder
      */
     protected $passthru = [
         'insert', 'insertOrIgnore', 'insertGetId', 'insertUsing', 'getBindings', 'toSql', 'dump', 'dd',
-        'exists', 'doesntExist', 'count', 'min', 'max', 'avg', 'average', 'sum', 'getConnection', 'graph', 'getGraph'
+        'exists', 'doesntExist', 'count', 'min', 'max', 'avg', 'average', 'sum', 'getConnection', 'graph', 'getGraph', 'pushAttribute',
     ];
 
     /**
@@ -1068,7 +1068,7 @@ class Builder
     {
         $eagerLoad = $this->parseWithRelations(is_string($relations) ? func_get_args() : $relations);
 
-        $this->eagerLoad = array_merge($this->eagerLoad, $eagerLoad);
+        // $this->eagerLoad = array_merge($this->eagerLoad, $eagerLoad);
 
         return $this;
     }
@@ -1117,18 +1117,14 @@ class Builder
             // Closure there, so that we can treat them all the same.
             if (is_numeric($name)) {
                 $name = $constraints;
-
-                [$name, $constraints] = Str::contains($name, ':')
-                            ? $this->createSelectWithConstraint($name)
-                            : [$name, function () {
-                                //
-                            }];
+                $constraints = null;
             }
 
-            // We need to separate out any nested includes, which allows the developers
-            // to load deep relationships using "dots" without stating each level of
-            // the relationship with its own key in the array of eager-load names.
-            $results = $this->addNestedWiths($name, $results);
+            $this->addSelect($name);
+
+            if ($constraints) {
+                $this->whereHas($name, $constraints);
+            }
 
             $results[$name] = $constraints;
         }
@@ -1147,33 +1143,6 @@ class Builder
         return [explode(':', $name)[0], function ($query) use ($name) {
             $query->select(explode(',', explode(':', $name)[1]));
         }];
-    }
-
-    /**
-     * Parse the nested relationships in a relation.
-     *
-     * @param  string  $name
-     * @param  array  $results
-     * @return array
-     */
-    protected function addNestedWiths($name, $results)
-    {
-        $progress = [];
-
-        // If the relation has already been set on the result array, we will not set it
-        // again, since that would override any constraints that were already placed
-        // on the relationships. We will only set the ones that are not specified.
-        foreach (explode('.', $name) as $segment) {
-            $progress[] = $segment;
-
-            if (! isset($results[$last = implode('.', $progress)])) {
-                $results[$last] = function () {
-                    //
-                };
-            }
-        }
-
-        return $results;
     }
 
     /**

@@ -25,11 +25,11 @@ use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Database\ConnectionResolverInterface as Resolver;
 
 use SolidDataWorkers\SPARQL\Query\Expression;
+use SolidDataWorkers\SPARQL\Eloquent\Concerns\HasRelationships;
 
 use Illuminate\Database\Eloquent\Concerns\HasAttributes;
 use Illuminate\Database\Eloquent\Concerns\HasEvents;
 use Illuminate\Database\Eloquent\Concerns\HasGlobalScopes;
-use Illuminate\Database\Eloquent\Concerns\HasRelationships;
 use Illuminate\Database\Eloquent\Concerns\HasTimestamps;
 use Illuminate\Database\Eloquent\Concerns\HidesAttributes;
 use Illuminate\Database\Eloquent\Concerns\GuardsAttributes;
@@ -45,6 +45,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         ForwardsCalls,
         HasAttributes {
             setAttribute as realSetAttribute;
+            getAttribute as realGetAttribute;
+            setRawAttributes as realSetRawAttribute;
         }
 
     /**
@@ -82,7 +84,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @var bool
      */
-    public $incrementing = true;
+    public $incrementing = false;
 
     /**
      * The relations to eager load on every query.
@@ -160,6 +162,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * @var array
      */
     protected static $ignoreOnTouch = [];
+
+    private $resource_descriptor = null;
 
     /**
      * The name of the "created at" column.
@@ -328,13 +332,96 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         return false;
     }
 
-    public function setAttribute($key, $value)
+    public function allAttributes()
     {
-        if (!($value instanceof Expression)) {
-            $value = new Expression($value, 'string');
+        $types = $this->realGetAttribute('rdf:type');
+        if (isset($types)) {
+            $properties = [];
+
+            foreach($types as $type) {
+                $sub_properties = $this->getIntrospector()->getProperties($type);
+                $properties = array_merge($properties, $sub_properties);
+            }
+        }
+        else {
+            $properties = $this->getIntrospector()->getProperties($this->getTable());
         }
 
-        $this->realSetAttribute($key, $value);
+        return $properties;
+    }
+
+    private function normalizeAttribute($attributes)
+    {
+        /*
+            All attributes are normalized to be Collections, and values are
+            properly enclosed once in their form (accordly to the ontology)
+        */
+        $introspector = $this->getIntrospector();
+        $normalized_attributes = [];
+
+        foreach($attributes as $attr_name => $attr_value) {
+            if (!is_a($attr_value, BaseCollection::class)) {
+                $enclosed = [];
+                $attr_value = array_unique(Arr::wrap($attr_value));
+
+                foreach($attr_value as $attr_key => $value) {
+                    $value = $introspector->encloseProperty($attr_name, $value);
+                    if (is_numeric($attr_key)) {
+                        $enclosed[] = $value;
+                    }
+                    else {
+                        $enclosed[$attr_key] = $value;
+                    }
+                }
+
+                $attr_value = collect($enclosed);
+            }
+
+            $normalized_attributes[$attr_name] = $attr_value;
+        }
+
+        return $normalized_attributes;
+    }
+
+    public function setAttribute($key, $value)
+    {
+        $normalized_attributes = $this->normalizeAttribute([$key => $value]);
+        foreach($normalized_attributes as $key => $value) {
+            $this->realSetAttribute($key, $value);
+        }
+    }
+
+    public function getAttribute($key)
+    {
+        if ($key == 'id') {
+            return $this->id;
+        }
+
+        $attr = $this->realGetAttribute($key);
+
+        if (!isset($attr)) {
+            /*
+                TODO
+
+                This has to be improved.
+                Actually it fetches a whole new Model with the attribute
+                set from the SPARQL endpoint, eventually this has to be
+                rewritten to fetch just the required attribute
+            */
+            $wrap = $this->query()->select($key)->whereKey($this->id)->get();
+            if ($wrap) {
+                $attr = $wrap->first()->getAttribute($key);
+                $this->setAttribute($key, $attr);
+            }
+        }
+
+        return $attr;
+    }
+
+    public function setRawAttributes(array $attributes, $sync = false)
+    {
+        $attributes = $this->normalizeAttribute($attributes);
+        return $this->realSetRawAttribute($attributes, $sync);
     }
 
     /**
@@ -438,6 +525,10 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     public function newFromBuilder($attributes = [], $connection = null)
     {
         $model = $this->newInstance([], true);
+
+        if (isset($attributes->id)) {
+            $model->id = $attributes->id;
+        }
 
         $model->setRawAttributes((array) $attributes, true);
 
@@ -1242,6 +1333,11 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         return $this;
     }
 
+    private function getIntrospector()
+    {
+        return $this->getConnection()->getIntrospector();
+    }
+
     /**
      * Resolve a connection instance.
      *
@@ -1291,6 +1387,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function getTable()
     {
+        // TODO
+        // Fix automatic table name generation mapping FoafPerson -> foaf:Person
         return $this->table ?? Str::snake(Str::pluralStudly(class_basename($this)));
     }
 
@@ -1365,6 +1463,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
 
     /**
      * Get the value indicating whether the IDs are incrementing.
+     * TODO: to be removed?
      *
      * @return bool
      */
@@ -1375,14 +1474,14 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
 
     /**
      * Set whether IDs are incrementing.
+     * TODO: to be removed?
      *
      * @param  bool  $value
      * @return $this
      */
     public function setIncrementing($value)
     {
-        $this->incrementing = $value;
-
+        // $this->incrementing = $value;
         return $this;
     }
 
@@ -1550,8 +1649,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function __set($key, $value)
     {
-        $key = $this->flatKeyName($key);
-        $this->setAttribute($key, $value);
+        $this->offsetSet($key, $value);
     }
 
     /**
@@ -1573,6 +1671,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function offsetGet($offset)
     {
+        $offset = $this->flatKeyName($offset);
         return $this->getAttribute($offset);
     }
 
@@ -1585,6 +1684,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function offsetSet($offset, $value)
     {
+        $offset = $this->flatKeyName($offset);
         $this->setAttribute($offset, $value);
     }
 
@@ -1632,6 +1732,16 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     {
         if (in_array($method, ['increment', 'decrement'])) {
             return $this->$method(...$parameters);
+        }
+
+        /*
+            This is to automatically generate relationships with other
+            Resources, accordly to the ontology
+        */
+        $properties = $this->allAttributes();
+        if (isset($properties[$method])) {
+            if ($properties[$method]->range['type'] == 'uri')
+                return $this->hasMany($this->getIntrospector()->getModel($properties[$method]->range['value']), 'id', $method);
         }
 
         return $this->forwardCallTo($this->newQuery(), $method, $parameters);

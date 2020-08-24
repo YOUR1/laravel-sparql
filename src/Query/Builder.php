@@ -221,8 +221,18 @@ class Builder
         return [$this->unique_subject];
     }
 
-    private function pushAttribute($attribute)
+    public function pushAttribute($attribute)
     {
+        /*
+            If an attribute has already been pushed into the query, here we
+            retrieve the existing mapping to the assigned property name.
+        */
+        foreach($this->wheres as $where) {
+            if (isset($where['column']) && $where['column'] == $attribute && isset($where['value']) && ($where['value'] instanceof Expression) && ($where['value']->getType() == 'param')) {
+                return $where['value']->getValue();
+            }
+        }
+
         $prop = '?' . Str::random(10);
         $prop = new Expression($prop, 'param');
         $this->where($attribute, $prop);
@@ -365,14 +375,16 @@ class Builder
     /**
      * Add a new select column to the query.
      *
-     * @param  array|mixed  $column
+     * @param  array|mixed  $columns
      * @return $this
      */
-    public function addSelect($column)
+    public function addSelect($columns)
     {
-        $column = is_array($column) ? $column : func_get_args();
+        $columns = is_array($columns) ? $columns : func_get_args();
 
-        $this->columns = array_merge((array) $this->columns, $column);
+        foreach($columns as $c) {
+            $this->columns[] = $this->pushAttribute($c);
+        }
 
         return $this;
     }
@@ -1859,6 +1871,11 @@ class Builder
      */
     public function limit($value)
     {
+        /*
+            TODO: the logic of the "limit" has to be fixed, at least when
+            executed in Eloquent\Builder.
+            It should fetch N subjects, not just N values.
+        */
         $property = $this->unions ? 'unionLimit' : 'limit';
 
         if ($value >= 0) {

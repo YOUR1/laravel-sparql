@@ -6,15 +6,9 @@ SPDX-License-Identifier: CC-BY-3.0
 Laravel SPARQL
 ==============
 
-An Eloquent model and Query builder with support for SPARQL, using the original Laravel API. *This library extends the original Laravel classes, so it uses exactly the same methods.*
+An Eloquent model and Query builder with support for SPARQL, using the original Laravel API.
 
-Table of contents
------------------
-* [Installation](#installation)
-* [Configuration](#configuration)
-* [Eloquent](#eloquent)
-* [Query Builder](#query-builder)
-* [Examples](#examples)
+Heavily based on the original MIT licensed Illuminate Database package, Copyright (c) Taylor Otwell.
 
 Installation
 ------------
@@ -56,14 +50,19 @@ And add a new sparql connection:
 ],
 ```
 
-Optionally you can define custom RDF namespaces, which will be used in addiction to those defined by default. This is useful to use shortened URI (e.g. "dbr:New_York_City" instead of "http://dbpedia.org/resource/New_York_City"):
+It is optional, but highly reccomended, to define your RDF namespaces. If you don't, a set of default namespaces is used (the one from EasyRDF) but this widely slows down the initialization of the internal Introspector (see below) at least at the first execution. Many features about attributes access will not work properly for undefined namespaces.
 
 ```php
 'sparql' => [
     'driver'     => 'sparql',
     'host'       => env('DB_HOST', 'https://dbpedia.org/sparql'),
     'namespaces' => [
-        'dbr' => 'http://dbpedia.org/resource/'
+        'owl'    => 'http://www.w3.org/2002/07/owl#',
+        'rdf'    => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+        'rdfs'   => 'http://www.w3.org/2000/01/rdf-schema#',
+        'dbo'    => 'http://dbpedia.org/ontology/',
+        'schema' => 'http://schema.org/',
+        'foaf'   => 'http://xmlns.com/foaf/0.1/',
     ]
 ],
 ```
@@ -76,37 +75,6 @@ You can also define the default graph name on which run queries:
     'host'       => env('DB_HOST', 'https://dbpedia.org/sparql'),
     'graph'      => 'urn:my:named:graph',
 ],
-```
-
-Eloquent
---------
-
-This package includes a SPARQL enabled Eloquent class that you can use to define models for corresponding RDF classes.
-
-```php
-use SolidDataWorkers\SPARQL\Eloquent\Model as Eloquent;
-
-class Person extends Eloquent {
-    protected $table = "foaf:Person";
-}
-
-class Place extends Eloquent {
-    protected $table = "http://dbpedia.org/ontology/PopulatedPlace";
-}
-```
-
-Everything else (should) work just like the original Eloquent model. Read more about the Eloquent on http://laravel.com/docs/eloquent
-
-You may also register an alias for the SPARQL model by adding the following to the alias array in `config/app.php`:
-
-```php
-'RDFModel'       => SolidDataWorkers\SPARQL\Eloquent\Model::class,
-```
-
-This will allow you to use the registered alias like:
-
-```php
-class MyModel extends RDFModel {}
 ```
 
 Expressions
@@ -142,6 +110,58 @@ $people = DB::connection('sparql')->rdftype('foaf:Person')->get();
 
 Read more about the query builder on http://laravel.com/docs/queries
 
+Introspector
+---------
+
+The `Introspector` is an internal component used to keep a reference graph used to guess relations, datatypes for objects attributes, and provide some basic and transparent reasoning feature.
+
+For each involved namespace it fetches the related RDF definition from the full URL (which may require some time), and the loaded graph is cached using the [native Cache from Laravel](https://laravel.com/docs/cache). When the list of namespaces changes in the configuration, the cached graph is automatically invalidated and regenerated.
+
+If you want to manually invalidate the internal graph, just call
+
+```php
+Cache::forget('sparql_introspector_graph');
+```
+
+Eloquent
+--------
+
+This package includes a SPARQL enabled Eloquent class that you can use to define models for corresponding RDF classes.
+
+By default, for each basic class (`owl:Class`) found by the Introspector, a new PHP Model class is created, named after his shortened name, and then used by the Builder to instantiate the results fetched from the SPARQL endpoint, such as:
+
+```php
+namespace SolidDataWorkers\SPARQL\Eloquent;
+use SolidDataWorkers\SPARQL\Eloquent\Model;
+
+class ModelFoafPerson extends Model {
+    protected $table = "foaf:Person";
+}
+```
+
+To retrieve the Model class associated to each RDF class, call:
+
+```php
+$model = DB::getIntrospector()->getModel('dbo:Person');
+$new_model = new $model();
+```
+
+You can create your own classes extending `SolidDataWorkers\SPARQL\Eloquent\Model` and specifying the mapped class through the `$table` attribute. Those classes will not be created by the Introspector. Anyway, remember that relations are already implicitly guessed by the Introspector and - on the contrary of vanilla Laravel's Eloquent - you don't need to define them manually in your Model.
+
+```php
+use SolidDataWorkers\SPARQL\Eloquent\Model;
+
+class Person extends Model {
+    protected $table = "foaf:Person";
+}
+
+class Place extends Model {
+    protected $table = "http://dbpedia.org/ontology/PopulatedPlace";
+}
+```
+
+Everything else should work just like the original Eloquent model. Well: I'm working on it... Read more about the Eloquent on http://laravel.com/docs/eloquent
+
 Examples
 --------
 
@@ -161,19 +181,29 @@ $person = Person::find('http://dbpedia.org/resource/Al_Pacino');
 
 **Handling Properties**
 
+All properties are always encapsulated into a `Illuminate\Support\Collection` even when there is only a single value, so their behaviour is consistent across different properties types.
+
 ```php
 $name = $person->offsetGet('http://xmlns.com/foaf/0.1/name');
 $name = $person->offsetGet('foaf:name');
 $name = $person->foaf_name;
 ```
 
-The last example showcase a shortcut in which namespace and property name are separated with an underscore instead of a colon.
+The last example showcase a convenient shortcut in which namespace and property name are separated with an underscore instead of a colon. If a named attribute is not actually present into the Model instance, it tries anyway to get it dynamically from the SPARQL endpoint and returns `NULL` when nothing is found.
 
 ```php
 $person->offsetSet('http://xmlns.com/foaf/0.1/name', 'Al');
 $person->offsetSet('foaf:name', 'Al');
 $person->foaf_name = 'Al';
 ```
+
+Same for attribute setting: multiple ways to name them and assign a value.
+
+```php
+$place_name = $person->dbo_birthPlace;
+```
+
+Relations are automatically resolved by the Introspector, so accessing an attribute referencing another object it is automagically loaded into a Model and accessible through his own attributes. Please note that those relations are themselves properties, so are always returned into a `Illuminate\Support\Collection`.
 
 **Wheres**
 
@@ -205,7 +235,7 @@ $people = Person::whereIn('dbo:birthPlace', [new Expression('dbr:New_York_City',
 $places = Place::whereBetween('dbo:areaTotal', [10000000000, 20000000000])->get();
 ```
 
-**Where null (TODO)**
+**Where null**
 
 This actually select elements for which an attribute is not set at all.
 

@@ -16,7 +16,8 @@
         "illuminate/container": "6.*",
         "illuminate/database": "6.*",
         "illuminate/events": "6.*",
-        "madbob/easyrdf-on-guzzle": "^0.2.0"
+        "madbob/easyrdf-on-guzzle": "^0.2.0",
+        "ml/json-ld": "^1.2"
     },
     "require-dev": {
         "doctrine/dbal": "^2.5"

@@ -213,16 +213,21 @@ class Grammar extends BaseGrammar
                 $where['filters'] = [];
             }
 
-            switch($where['boolean']) {
-                case 'or':
-                    $boolean = 'union';
-                    break;
-                default:
-                    $boolean = '.';
-                    break;
+            if (!isset($where['boolean'])) {
+                return ' . ' . $this->compileFilters($query, $where);
             }
+            else {
+                switch($where['boolean']) {
+                    case 'or':
+                        $boolean = 'union';
+                        break;
+                    default:
+                        $boolean = ' . ';
+                        break;
+                }
 
-            return $boolean . ' { ' . $this->{"where{$where['type']}"}($query, $where) . ' }';
+                return $boolean . ' { ' . $this->{"where{$where['type']}"}($query, $where) . ' }';
+            }
         })->all();
     }
 
@@ -532,7 +537,17 @@ class Grammar extends BaseGrammar
      */
     protected function whereExists(Builder $query, $where)
     {
-        return 'exists ('.$this->compileSelect($where['query']).')';
+        $ret = [];
+
+        foreach($where['query']->columns as $column) {
+            if ($column != $where['query']->unique_subject) {
+                $ret[] = sprintf('FILTER EXISTS { %s %s %s }', $query->unique_subject, $column, $where['query']->unique_subject);
+            }
+        }
+
+        $query->addBinding($where['query']->getBindings(), 'where');
+
+        return join(' . ', $ret);
     }
 
     /**
@@ -544,7 +559,13 @@ class Grammar extends BaseGrammar
      */
     protected function whereNotExists(Builder $query, $where)
     {
-        return 'not exists ('.$this->compileSelect($where['query']).')';
+        $ret = [];
+
+        foreach($where['query']->columns as $column) {
+            $ret[] = sprintf('FILTER NOT EXISTS { %s %s %s }', $query->unique_subject, $column, $where['query']->unique_subject);
+        }
+
+        return join(' . ', $ret);
     }
 
     /**

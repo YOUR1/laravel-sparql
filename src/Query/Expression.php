@@ -23,6 +23,26 @@ class Expression
      */
     protected $type;
 
+    public static function str($string)
+    {
+        return new Expression($string, 'string');
+    }
+
+    public static function lit($string)
+    {
+        return new Expression($string, 'literal');
+    }
+
+    public static function urn($string)
+    {
+        return new Expression($string, 'urn');
+    }
+
+    public static function cls($string)
+    {
+        return new Expression($string, 'class');
+    }
+
     /**
      * Create a new raw query expression.
      *
@@ -56,16 +76,13 @@ class Expression
             case 'string':
                 return sprintf('"%s"', $this->value);
 
-            case 'param':
-            case 'literal':
-                return $this->value;
-
             case 'uri':
             case 'urn':
                 return sprintf('<%s>', $this->value);
 
             case 'class':
                 $uri = \EasyRdf\RdfNamespace::expand($this->value);
+
                 if (filter_var($uri, FILTER_VALIDATE_URL)) {
                     return sprintf('<%s>', $uri);
                 }
@@ -73,6 +90,10 @@ class Expression
                     return sprintf('<%s>', $this->value);
                 }
 
+                break;
+
+            case 'param':
+            case 'literal':
             default:
                 return $this->value;
         }
