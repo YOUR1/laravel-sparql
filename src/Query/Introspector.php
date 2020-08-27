@@ -13,6 +13,8 @@ use Illuminate\Support\Collection;
 
 use Cache;
 
+use Carbon\Carbon;
+
 class Introspector
 {
     protected $graph;
@@ -206,7 +208,7 @@ CLASS;
     }
 
     /*
-        TODO: enclose datetime contents in Carbon objects
+        TODO: permit to customize casts
     */
     public function encloseProperty($key, $value)
     {
@@ -226,11 +228,36 @@ CLASS;
             if ($attr_meta) {
                 if (isset($attr_meta->range)) {
                     if ($attr_meta->range['type'] == 'uri') {
-                        $model = $this->getModel($attr_meta->range['value']);
-                        if ($model) {
-                            $relation = new $model();
-                            $relation->id = $value;
-                            $value = $relation;
+                        switch($attr_meta->range['value']) {
+                            case 'http://www.w3.org/2001/XMLSchema#date':
+                            case 'http://www.w3.org/2001/XMLSchema#dateTime':
+                                $value = Carbon::parse($value);
+                                break;
+
+                            case 'http://www.w3.org/2001/XMLSchema#integer':
+                            case 'http://www.w3.org/2001/XMLSchema#nonNegativeInteger':
+                            case 'http://www.w3.org/2001/XMLSchema#positiveInteger':
+                                $value = (int) $value;
+                                break;
+
+                            case 'http://www.w3.org/2001/XMLSchema#double':
+                                $value = (double) $value;
+                                break;
+
+                            case 'http://www.w3.org/2001/XMLSchema#boolean':
+                                $true = ['true', '1', 'yes', 'y'];
+                                $value = in_array(mb_strtolower($value), $true);
+                                break;
+
+                            default:
+                                $model = $this->getModel($attr_meta->range['value']);
+                                if ($model) {
+                                    $relation = new $model();
+                                    $relation->id = $value;
+                                    $value = $relation;
+                                }
+
+                                break;
                         }
                     }
                 }
