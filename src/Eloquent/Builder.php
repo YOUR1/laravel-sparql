@@ -1068,7 +1068,7 @@ class Builder
     {
         $eagerLoad = $this->parseWithRelations(is_string($relations) ? func_get_args() : $relations);
 
-        // $this->eagerLoad = array_merge($this->eagerLoad, $eagerLoad);
+        $this->eagerLoad = array_merge($this->eagerLoad, $eagerLoad);
 
         return $this;
     }
@@ -1117,13 +1117,9 @@ class Builder
             // Closure there, so that we can treat them all the same.
             if (is_numeric($name)) {
                 $name = $constraints;
-                $constraints = null;
-            }
-
-            $this->addSelect($name);
-
-            if ($constraints) {
-                $this->whereHas($name, $constraints);
+                $constraints = static function() {
+                    //
+                };
             }
 
             $results[$name] = $constraints;

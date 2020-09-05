@@ -43,6 +43,11 @@ class Expression
         return new Expression($string, 'class');
     }
 
+    public static function par($string)
+    {
+        return new Expression($string, 'param');
+    }
+
     /**
      * Create a new raw query expression.
      *
@@ -107,6 +112,16 @@ class Expression
     public function getType()
     {
         return $this->type;
+    }
+
+    public static function is($value, $type)
+    {
+        return $value && $value instanceof self && $value->getType() == $type;
+    }
+
+    public static function same($first, $second)
+    {
+        return $first && $second && $first instanceof self && $second instanceof self && $first->getType() == $second->getType() && $first->getValue() == $second->getValue();
     }
 
     /**

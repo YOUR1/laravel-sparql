@@ -2,9 +2,11 @@
 
 namespace SolidDataWorkers\SPARQL\Eloquent\Relations;
 
+use Illuminate\Database\Eloquent\Collection;
+
 use SolidDataWorkers\SPARQL\Eloquent\Builder;
 use SolidDataWorkers\SPARQL\Eloquent\Model;
-use Illuminate\Database\Eloquent\Collection;
+use SolidDataWorkers\SPARQL\Query\Expression;
 
 class HasMany extends Relation
 {
@@ -28,6 +30,8 @@ class HasMany extends Relation
      * @var int
      */
     protected static $selfJoinCount = 0;
+
+    protected $current_subject = null;
 
     /**
      * Create a new has one or many relationship instance.
@@ -66,11 +70,12 @@ class HasMany extends Relation
      */
     public function addConstraints()
     {
-        if (static::$constraints) {
-            $this->query->where($this->foreignKey, $this->getParentKey());
-
-            $this->query->whereNotNull($this->foreignKey);
+        if ($this->current_subject == null) {
+            $this->current_subject = $this->query->pushAttribute($this->localKey, false);
+            $this->query->addSelect($this->current_subject);
         }
+
+        $this->query->whereSubject($this->localKey, $this->current_subject);
     }
 
     /**
@@ -81,11 +86,13 @@ class HasMany extends Relation
      */
     public function addEagerConstraints(array $models)
     {
-        $whereIn = $this->whereInMethod($this->parent, $this->localKey);
+        $keys = [];
 
-        $this->query->{$whereIn}(
-            $this->foreignKey, $this->getKeys($models, $this->localKey)
-        );
+        foreach($this->getKeys($models, $this->foreignKey) as $k) {
+            $keys[] = new Expression($k, 'urn');
+        }
+
+        $this->query->whereIn($this->current_subject, $keys);
     }
 
     /**
@@ -131,7 +138,7 @@ class HasMany extends Relation
         // link them up with their children using the keyed dictionary to make the
         // matching very convenient and easy work. Then we'll just return them.
         foreach ($models as $model) {
-            if (isset($dictionary[$key = $model->getAttribute($this->localKey)])) {
+            if (isset($dictionary[$key = $model->id])) {
                 $model->setRelation(
                     $relation, $this->getRelationValue($dictionary, $key, $type)
                 );
@@ -164,10 +171,20 @@ class HasMany extends Relation
      */
     protected function buildDictionary(Collection $results)
     {
-        $foreign = $this->getForeignKeyName();
+        $foreign = $this->localKey;
 
+        /*
+            When the relation query is executed, the Processor maps the
+            attribute on the reverse (the child modal has the parent model as
+            own child).
+            Here we use that same mapping to identify the parent model to which
+            attach the relation, but we have to invalidate the wrong reversed
+            attribute.
+        */
         return $results->mapToDictionary(function ($result) use ($foreign) {
-            return [$result->{$foreign} => $result];
+            $parent_key = $result->{$foreign}->first()->id;
+            $result->offsetUnset($foreign, true);
+            return [$parent_key => $result];
         })->all();
     }
 

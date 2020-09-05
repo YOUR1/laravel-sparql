@@ -221,21 +221,25 @@ class Builder
         return [$this->unique_subject];
     }
 
-    public function pushAttribute($attribute)
+    public function pushAttribute($attribute, $actual_where = true)
     {
         /*
             If an attribute has already been pushed into the query, here we
             retrieve the existing mapping to the assigned property name.
         */
         foreach($this->wheres as $where) {
-            if (isset($where['column']) && $where['column'] == $attribute && isset($where['value']) && ($where['value'] instanceof Expression) && ($where['value']->getType() == 'param')) {
+            if (isset($where['column']) && $where['column'] == $attribute && isset($where['value']) && Expression::is($where['value'], 'param')) {
                 return $where['value']->getValue();
             }
         }
 
         $prop = '?' . Str::random(10);
         $prop = new Expression($prop, 'param');
-        $this->where($attribute, $prop);
+
+        if ($actual_where) {
+            $this->where($attribute, $prop);
+        }
+
         return $prop;
     }
 
@@ -382,8 +386,17 @@ class Builder
     {
         $columns = is_array($columns) ? $columns : func_get_args();
 
+        if (empty($this->columns)) {
+            $this->columns = [$this->unique_subject];
+        }
+
         foreach($columns as $c) {
-            $this->columns[] = $this->pushAttribute($c);
+            if (Expression::is($c, 'param')) {
+                $this->columns[] = $c;
+            }
+            else {
+                $this->columns[] = $this->pushAttribute($c);
+            }
         }
 
         return $this;
@@ -720,6 +733,17 @@ class Builder
         );
 
         $this->addBinding($value, 'where');
+
+        return $this;
+    }
+
+    public function whereSubject($column, $value = null, $boolean = 'and')
+    {
+        $type = 'Reversed';
+
+        $this->wheres[] = compact(
+            'type', 'column', 'value', 'boolean'
+        );
 
         return $this;
     }

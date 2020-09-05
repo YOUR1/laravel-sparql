@@ -200,6 +200,60 @@ class Grammar extends BaseGrammar
         return '';
     }
 
+    protected function createFilter($where)
+    {
+        switch($where['operator']) {
+            case '=':
+                return [
+                    'type' => 'Basic',
+                    'attribute' => $where['column'],
+                    'value' => $where['values'],
+                    'boolean' => 'and'
+                ];
+
+                break;
+
+            case 'in':
+            case 'not in':
+            case 'between':
+            case 'not between':
+                return [
+                    'type' => str_replace(' ', '', ucwords($where['operator'])),
+                    'attribute' => $where['column'],
+                    'values' => $where['values'],
+                    'boolean' => 'and'
+                ];
+
+                break;
+
+            case 'like':
+                $where['value'] = str_replace('%%', '####', $where['value']);
+                $where['value'] = str_replace('%', '', $where['value']);
+                $where['value'] = str_replace('####', '%', $where['value']);
+
+            case 'regex':
+                return [
+                    'type' => 'Regex',
+                    'attribute' => $where['column'],
+                    'value' => $this->wrapValue($where['value']),
+                    'boolean' => 'and'
+                ];
+
+                break;
+
+            default:
+                return [
+                    'type' => 'Basic',
+                    'attribute' => $where['column'],
+                    'operator' => $where['operator'],
+                    'value' => $where['value'],
+                    'boolean' => 'and'
+                ];
+
+                break;
+        }
+    }
+
     /**
      * Get an array of all the where clauses for the query.
      *
@@ -208,11 +262,31 @@ class Grammar extends BaseGrammar
      */
     protected function compileWheresToArray($query)
     {
-        return collect($query->wheres)->map(function ($where) use ($query) {
+        $sorted_where = [];
+
+        /*
+            Where conditions referring to a parameter are aggregated as filters
+            into other where conditions having that same parameter as value
+        */
+        foreach($query->wheres as $where) {
             if (!isset($where['filters'])) {
                 $where['filters'] = [];
             }
 
+            if (Expression::is($where['column'] ?? null, 'param')) {
+                foreach($sorted_where as $index => $s) {
+                    if (Expression::same($s['value'] ?? null, $where['column'])) {
+                        $sorted_where[$index]['filters'][] = $this->createFilter($where);
+                        break;
+                    }
+                }
+            }
+            else {
+                $sorted_where[] = $where;
+            }
+        }
+
+        return collect($sorted_where)->map(function ($where) use ($query) {
             if (!isset($where['boolean'])) {
                 return ' . ' . $this->compileFilters($query, $where);
             }
@@ -275,7 +349,7 @@ class Grammar extends BaseGrammar
             case 'not in':
             case 'between':
             case 'not between':
-                $val = '?' . Str::random(10);
+                $val = $query->pushAttribute($where['column'], false);
 
                 $where['filters'][] = [
                     'type' => str_replace(' ', '', ucwords($where['operator'])),
@@ -293,7 +367,7 @@ class Grammar extends BaseGrammar
                 $where['value'] = str_replace('####', '%', $where['value']);
 
             case 'regex':
-                $val = '?' . Str::random(10);
+                $val = $query->pushAttribute($where['column'], false);
 
                 $where['filters'][] = [
                     'type' => 'Regex',
@@ -306,7 +380,7 @@ class Grammar extends BaseGrammar
                 break;
 
             default:
-                $val = '?' . Str::random(10);
+                $val = $query->pushAttribute($where['column'], false);
                 $value = $this->parameter($where['value']);
 
                 $where['filters'][] = [
@@ -322,6 +396,12 @@ class Grammar extends BaseGrammar
         }
 
         return $query->unique_subject . ' ' . $where['column'] . ' ' . $value . $this->compileFilters($query, $where);
+    }
+
+    protected function whereReversed(Builder $query, $where)
+    {
+        $value = $this->parameter($where['value']);
+        return $value . ' ' . $where['column'] . ' ' . $query->unique_subject . $this->compileFilters($query, $where);
     }
 
     /**

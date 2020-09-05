@@ -1694,9 +1694,12 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * @param  mixed  $offset
      * @return void
      */
-    public function offsetUnset($offset)
+    public function offsetUnset($offset, $sync = false)
     {
         unset($this->attributes[$offset], $this->relations[$offset]);
+        if ($sync) {
+            unset($this->original[$offset]);
+        }
     }
 
     /**
@@ -1740,8 +1743,9 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         */
         $properties = $this->allAttributes();
         if (isset($properties[$method])) {
-            if ($properties[$method]->range['type'] == 'uri')
+            if ($properties[$method]->range['type'] == 'uri') {
                 return $this->hasMany($this->getIntrospector()->getModel($properties[$method]->range['value']), 'id', $method);
+            }
         }
 
         return $this->forwardCallTo($this->newQuery(), $method, $parameters);

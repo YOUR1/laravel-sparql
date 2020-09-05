@@ -54,13 +54,6 @@ abstract class Relation
     protected static $constraints = true;
 
     /**
-     * An array to map class names to their morph names in database.
-     *
-     * @var array
-     */
-    public static $morphMap = [];
-
-    /**
      * Create a new relation instance.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
@@ -155,7 +148,7 @@ abstract class Relation
      * @param  array  $columns
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function get($columns = ['*'])
+    public function get($columns = false)
     {
         return $this->query->get($columns);
     }
@@ -325,53 +318,6 @@ abstract class Relation
                     && in_array($model->getKeyType(), ['int', 'integer'])
                         ? 'whereIntegerInRaw'
                         : 'whereIn';
-    }
-
-    /**
-     * Set or get the morph map for polymorphic relations.
-     *
-     * @param  array|null  $map
-     * @param  bool  $merge
-     * @return array
-     */
-    public static function morphMap(array $map = null, $merge = true)
-    {
-        $map = static::buildMorphMapFromModels($map);
-
-        if (is_array($map)) {
-            static::$morphMap = $merge && static::$morphMap
-                            ? $map + static::$morphMap : $map;
-        }
-
-        return static::$morphMap;
-    }
-
-    /**
-     * Builds a table-keyed array from model class names.
-     *
-     * @param  string[]|null  $models
-     * @return array|null
-     */
-    protected static function buildMorphMapFromModels(array $models = null)
-    {
-        if (is_null($models) || Arr::isAssoc($models)) {
-            return $models;
-        }
-
-        return array_combine(array_map(function ($model) {
-            return (new $model)->getTable();
-        }, $models), $models);
-    }
-
-    /**
-     * Get the model associated with a custom polymorphic type.
-     *
-     * @param  string  $alias
-     * @return string|null
-     */
-    public static function getMorphedModel($alias)
-    {
-        return static::$morphMap[$alias] ?? null;
     }
 
     /**
