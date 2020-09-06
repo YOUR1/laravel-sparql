@@ -151,7 +151,10 @@ class Grammar extends BaseGrammar
      */
     protected function compileFrom(Builder $query, $table)
     {
-        $query->where('rdf:type', new Expression($table, 'class'));
+        if (!empty($table)) {
+            $query->where('rdf:type', new Expression($table, 'class'));
+        }
+
         return '';
     }
 
@@ -959,8 +962,10 @@ class Grammar extends BaseGrammar
 
         $ret .= ' {';
 
-        foreach(reset($values) as $column => $value) {
-            $ret .= sprintf('%s %s %s . ', $this->wrapUri($query->unique_subject), $column, $value);
+        foreach($values as $column => $value) {
+            foreach($value as $v) {
+                $ret .= sprintf('%s %s %s . ', $this->wrapUri($query->unique_subject), $column, $v);
+            }
         }
 
         $ret .= ' }';

@@ -47,6 +47,13 @@ class HasMany extends Relation
         $this->localKey = $localKey;
         $this->foreignKey = $foreignKey;
 
+        /*
+            Here no rdf:type is enforced for the query, as actual related
+            subjects may be in any subclass of the one in range of the relation.
+            TODO: handle subclasses (not here, but in Grammar::compileFrom())
+        */
+        $query->from('');
+
         parent::__construct($query, $parent);
     }
 

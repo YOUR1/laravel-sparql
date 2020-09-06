@@ -410,8 +410,11 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             */
             $wrap = $this->query()->select($key)->whereKey($this->id)->get();
             if ($wrap) {
-                $attr = $wrap->first()->getAttribute($key);
-                $this->setAttribute($key, $attr);
+                $wrap = $wrap->first();
+                if ($wrap) {
+                    $attr = $wrap->getAttribute($key);
+                    $this->setAttribute($key, $attr);
+                }
             }
         }
 
@@ -905,11 +908,27 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         // the query builder, which will give us back the final inserted ID for this
         // table from the database. Not all tables have to be incrementing though.
         $attributes = $this->getAttributes();
-        if (empty($attributes)) {
-            return true;
+        if (!isset($attributes['rdf:type'])) {
+            $attributes['rdf:type'] = collect($this->table);
         }
 
-        $this->setKeysForSaveQuery($query)->insert($attributes);
+        $final_attributes = [];
+
+        foreach($attributes as $key => $value) {
+            $final_values = [];
+
+            foreach($value as $v) {
+                if (is_a($v, self::class)) {
+                    $v = Expression::urn($v->id);
+                }
+
+                $final_values[] = (string) $v;
+            }
+
+            $final_attributes[$key] = $final_values;
+        }
+
+        $this->setKeysForSaveQuery($query)->insert($final_attributes);
 
         // We will go ahead and set the exists property to true, so that it is set when
         // the created event is fired, just in case the developer tries to update it

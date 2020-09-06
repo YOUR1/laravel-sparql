@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
+use SolidDataWorkers\SPARQL\Eloquent\Model;
+
 use Cache;
 
 use Carbon\Carbon;
@@ -72,6 +74,11 @@ CLASS;
             $graph = new \EasyRdf\Graph();
 
             foreach($required_namespaces as $prefix => $url) {
+                /*
+                    Use LOV API
+                    https://lov.linkeddata.es/dataset/lov/api
+                    to retrieve actual ontologies files.
+                */
                 try {
                     $graph->load($url);
                 }
@@ -100,7 +107,7 @@ CLASS;
             }
         }
 
-        $base_classes = ['http://www.w3.org/2002/07/owl#Class'];
+        $base_classes = ['http://www.w3.org/2002/07/owl#Class', 'http://www.w3.org/2000/01/rdf-schema#Class'];
         if (isset($config['base_classes'])) {
             $base_classes = Arr::wrap($config['base_classes']);
         }
@@ -222,6 +229,10 @@ CLASS;
             return $ret;
         }
         else {
+            if (is_a($value, Model::class)) {
+                return $value;
+            }
+
             $value = (string) $value;
 
             $attr_meta = $this->propertyDatatype($key);
@@ -229,6 +240,10 @@ CLASS;
                 if (isset($attr_meta->range)) {
                     if ($attr_meta->range['type'] == 'uri') {
                         switch($attr_meta->range['value']) {
+                            case 'http://www.w3.org/2001/XMLSchema#string':
+                                $value = (string) $value;
+                                break;
+
                             case 'http://www.w3.org/2001/XMLSchema#date':
                             case 'http://www.w3.org/2001/XMLSchema#dateTime':
                                 $value = Carbon::parse($value);
