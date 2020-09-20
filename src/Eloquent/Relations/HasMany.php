@@ -96,7 +96,7 @@ class HasMany extends Relation
         $keys = [];
 
         foreach($this->getKeys($models, $this->foreignKey) as $k) {
-            $keys[] = new Expression($k, 'urn');
+            $keys[] = Expression::urn($k);
         }
 
         $this->query->whereIn($this->current_subject, $keys);
@@ -179,6 +179,7 @@ class HasMany extends Relation
     protected function buildDictionary(Collection $results)
     {
         $foreign = $this->localKey;
+        $ret = [];
 
         /*
             When the relation query is executed, the Processor maps the
@@ -188,11 +189,19 @@ class HasMany extends Relation
             attach the relation, but we have to invalidate the wrong reversed
             attribute.
         */
-        return $results->mapToDictionary(function ($result) use ($foreign) {
-            $parent_key = $result->{$foreign}->first()->id;
+
+        foreach($results as $result) {
+            $related = $result->{$foreign};
+            foreach($related as $r) {
+                if (!isset($ret[$r->id])) {
+                    $ret[$r->id] = [];
+                }
+                $ret[$r->id][] = $result;
+            }
             $result->offsetUnset($foreign, true);
-            return [$parent_key => $result];
-        })->all();
+        }
+
+        return $ret;
     }
 
     /**

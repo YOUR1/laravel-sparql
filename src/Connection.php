@@ -113,33 +113,29 @@ class Connection extends BaseConnection
 
     public function statement($query, $bindings = [])
     {
+        return $this->select($query, $bindings);
+    }
+
+    public function affectingStatement($query, $bindings = [])
+    {
+        /*
         return $this->run($query, $bindings, function ($query, $bindings) {
             if ($this->pretending()) {
-                return true;
+                return [];
             }
 
             $binded_query = $this->altBindValues($query, $bindings);
 
             // echo $query . "\n";
-            // echo $binded_query . "\n";
+            // print_r($bindings);
+            echo 'UPDATE: ' . $binded_query . "\n";
 
-            return $this->connection->query($binded_query);
+            $this->connection->update($binded_query);
+            return 0;
         });
-    }
+        */
 
-    public function affectingStatement($query, $bindings = [])
-    {
-        return $this->run($query, $bindings, function ($query, $bindings) {
-            if ($this->pretending()) {
-                return 0;
-            }
-
-            $statement = $this->getPdo()->prepare($query);
-            $this->bindValues($statement, $this->prepareBindings($bindings));
-            $statement->execute();
-            $this->recordsHaveBeenModified(($count = $statement->rowCount()) > 0);
-            return $count;
-        });
+        return $this->select($query, $bindings);
     }
 
     public function unprepared($query)

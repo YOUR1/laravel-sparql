@@ -234,7 +234,7 @@ class Builder
         }
 
         $prop = '?' . Str::random(10);
-        $prop = new Expression($prop, 'param');
+        $prop = Expression::par($prop);
 
         if ($actual_where) {
             $this->where($attribute, $prop);
@@ -790,7 +790,7 @@ class Builder
         }
 
         if (!($value instanceof Expression)) {
-            $value = new Expression($value, 'string');
+            $value = Expression::str($value);
         }
 
         return [$value, $operator];

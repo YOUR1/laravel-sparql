@@ -29,29 +29,27 @@ class Processor
                     $value_index = $value->getLang();
                 }
 
-                $value = (string) $value;
-
                 if ($param == substr($query->unique_subject, 1)) {
                     if ($last_id != $value) {
-                        $obj = $ret->where('id', $value)->first();
+                        $obj = $ret->where('id', (string) $value)->first();
                         if (is_null($obj)) {
                             $obj = (object)[
-                                'id' => $value
+                                'id' => (string) $value
                             ];
 
                             $ret->push($obj);
-                            $last_id = $value;
+                            $last_id = (string) $value;
                         }
                     }
                 }
                 else if ($param == 'prop') {
-                    $next_column = $value;
+                    $next_column = (string) $value;
                 }
                 else {
                     $column_name = null;
 
                     foreach($query->wheres as $where) {
-                        if (isset($where['value']) && ($where['value'] instanceof Expression) && ($where['value']->getType() == 'param') && ($where['value']->getValue() == '?' . $param)) {
+                        if (isset($where['value']) && Expression::is($where['value'], 'param') && $where['value']->getValue() == '?' . $param) {
                             $column_name = $where['column'];
                             break;
                         }

@@ -101,9 +101,9 @@ When passing a value to any function of the query builder, any plain string is c
 
 ```php
 // Doesn't wraps the value within quotes or other
-$e = new Expression('dbr:Philadelphia', 'literal');
+$e = Expression::raw('dbr:Philadelphia');
 // Explodes the class name and wraps it within angular brackets
-$e = new Expression('foaf:Person', 'class');
+$e = Expression::cls('foaf:Person');
 ```
 
 Query Builder
@@ -229,19 +229,19 @@ $places = Place::where('dbo:areaTotal', '>', 10000000000)->get();
 **And Statements**
 
 ```php
-$places = Place::where('dbo:areaTotal', '>', 10000000000)->where('dbo:country', new Expression('dbr:Italy', 'literal'))->get();
+$places = Place::where('dbo:areaTotal', '>', 10000000000)->where('dbo:country', Expression::raw('dbr:Italy'))->get();
 ```
 
 **Or Statements (TODO)**
 
 ```php
-$places = Place::where('dbo:areaTotal', '>', 10000000000)->orWhere('dbo:country', new Expression('dbr:Italy', 'literal'))->get();
+$places = Place::where('dbo:areaTotal', '>', 10000000000)->orWhere('dbo:country', Expression::raw('dbr:Italy'))->get();
 ```
 
 **Using Where In With An Array**
 
 ```php
-$people = Person::whereIn('dbo:birthPlace', [new Expression('dbr:New_York_City', 'literal'), new Expression('dbr:Philadelphia', 'literal')])->get();
+$people = Person::whereIn('dbo:birthPlace', [Expression::raw('dbr:New_York_City'), Expression::raw('dbr:Philadelphia')])->get();
 ```
 
 **Using Where Between**
@@ -283,7 +283,7 @@ $places = Place::distinct()->get('dbo:country');
 Distinct can be combined with **where**:
 
 ```php
-$people = Person::where('dbo:birthPlace', new Expression('dbr:New_York_City', 'literal'))->distinct()->get('dbo:deathPlace');
+$people = Person::where('dbo:birthPlace', Expression::raw('dbr:New_York_City'))->distinct()->get('dbo:deathPlace');
 ```
 
 **Advanced Wheres**
@@ -291,7 +291,7 @@ $people = Person::where('dbo:birthPlace', new Expression('dbr:New_York_City', 'l
 ```php
 $places = Place::where('dbo:areaTotal', '>', 10000000000)->orWhere(function($query)
     {
-        $query->where('dbo:country', new Expression('dbr:Italy', 'literal'))
+        $query->where('dbo:country', Expression::raw('dbr:Italy'))
               ->where('dbo:areaTotal', '>', 10000000);
     })
     ->get();
@@ -318,7 +318,22 @@ $sum = Place::sum('dbo:areaTotal');
 Aggregations can be combined with **where**:
 
 ```php
-$sum = Place::where('dbo:country', new Expression('dbr:Italy', 'literal'))->sum('dbo:areaTotal');
+$sum = Place::where('dbo:country', Expression::raw('dbr:Italy'))->sum('dbo:areaTotal');
+```
+
+**Deleting**
+
+To delete a model, simply call the delete method on the instance:
+
+```php
+$place = Place::first();
+$place->delete();
+```
+
+Or deleting a model by its key:
+
+```php
+Place::destroy('dbr:Philadelphia');
 ```
 
 ### SPARQL specific operators

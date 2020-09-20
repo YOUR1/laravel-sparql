@@ -18,7 +18,6 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Traits\ForwardsCalls;
 use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Contracts\Queue\QueueableEntity;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Contracts\Queue\QueueableCollection;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as BaseCollection;
@@ -416,6 +415,11 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
                     $this->setAttribute($key, $attr);
                 }
             }
+        }
+
+        if (!isset($attr)) {
+            $attr = new Collection();
+            $this->setAttribute($key, $attr);
         }
 
         return $attr;
@@ -1042,7 +1046,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     protected function performDeleteOnModel()
     {
-        $this->setKeysForSaveQuery($this->newModelQuery())->delete();
+        $this->setKeysForSaveQuery($this->newModelQuery())->select('*')->delete();
 
         $this->exists = false;
     }
@@ -1173,22 +1177,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     }
 
     /**
-     * Create a new pivot model instance.
-     *
-     * @param  \Illuminate\Database\Eloquent\Model  $parent
-     * @param  array  $attributes
-     * @param  string  $table
-     * @param  bool  $exists
-     * @param  string|null  $using
-     * @return \Illuminate\Database\Eloquent\Relations\Pivot
-     */
-    public function newPivot(self $parent, array $attributes, $table, $exists, $using = null)
-    {
-        return $using ? $using::fromRawAttributes($parent, $attributes, $table, $exists)
-                      : Pivot::fromAttributes($parent, $attributes, $table, $exists);
-    }
-
-    /**
      * Convert the model instance to an array.
      *
      * @return array
@@ -1260,7 +1248,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             static::newQueryWithoutScopes()->findOrFail($this->getKey())->attributes
         );
 
-        $this->load(collect($this->relations)->except('pivot')->keys()->toArray());
+        $this->load(collect($this->relations)->keys()->toArray());
 
         $this->syncOriginal();
 

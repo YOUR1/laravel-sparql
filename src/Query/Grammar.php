@@ -118,7 +118,7 @@ class Grammar extends BaseGrammar
             $column = 'distinct '.$column;
         }
 
-        return 'select '.$aggregate['function'].'('.$column.') as ?aggregate';
+        return 'select ' . $aggregate['function'] . '(' . $column . ') as ?aggregate ' . $this->compileGraph($query);
     }
 
     /**
@@ -139,7 +139,7 @@ class Grammar extends BaseGrammar
 
         $select = $query->distinct ? 'select distinct ' : 'select ';
 
-        return $select.$this->columnize($columns);
+        return $select.$this->columnize($columns) . $this->compileGraph($query);
     }
 
     /**
@@ -152,7 +152,7 @@ class Grammar extends BaseGrammar
     protected function compileFrom(Builder $query, $table)
     {
         if (!empty($table)) {
-            $query->where('rdf:type', new Expression($table, 'class'));
+            $query->where('rdf:type', Expression::cls($table));
         }
 
         return '';
@@ -319,7 +319,12 @@ class Grammar extends BaseGrammar
     {
         $conjunction = $query instanceof JoinClause ? 'on' : 'where';
 
-        return $conjunction.' { '.$this->removeLeadingBoolean(implode(' ', $sql)) . ' }';
+        if (count($query->wheres) > 1) {
+            return $conjunction.' { '.$this->removeLeadingBoolean(implode(' ', $sql)) . ' }';
+        }
+        else {
+            return $conjunction.' '.$this->removeLeadingBoolean(implode(' ', $sql));
+        }
     }
 
     /**
@@ -665,6 +670,17 @@ class Grammar extends BaseGrammar
         $values = $this->parameterize($where['values']);
 
         return '('.$columns.') '.$where['operator'].' ('.$values.')';
+    }
+
+    protected function compileGraph($query)
+    {
+        $graph = $query->getGraph();
+        if ($graph) {
+            return ' FROM ' . $this->wrapUri($graph);
+        }
+        else {
+            return '';
+        }
     }
 
     protected function compileFilters($query, $where)
@@ -1070,9 +1086,26 @@ class Grammar extends BaseGrammar
      */
     public function compileDelete(Builder $query)
     {
+        /*
         $wheres = is_array($query->wheres) ? $this->compileWheres($query) : '';
+        $first = substr($wheres, strpos($wheres, '{'));
 
-        return trim("delete from {$this->wrapUri($query->from)} $wheres");
+        return trim("delete $first $wheres");
+        */
+
+        $ret = '';
+
+        $graph = $query->getGraph();
+        if ($graph) {
+            $ret .= 'WITH ' . $this->wrapUri($graph) . "\n";
+        }
+
+        $wheres = is_array($query->wheres) ? $this->compileWheres($query) : '';
+        $first = substr($wheres, strpos($wheres, '{'));
+
+        $ret .= trim("delete $first $wheres");
+
+        return $ret;
     }
 
     /**

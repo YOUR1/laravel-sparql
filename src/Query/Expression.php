@@ -7,6 +7,8 @@ SPDX-License-Identifier: MIT
 
 namespace SolidDataWorkers\SPARQL\Query;
 
+use Illuminate\Support\Str;
+
 class Expression
 {
     /**
@@ -28,14 +30,14 @@ class Expression
         return new Expression($string, 'string');
     }
 
-    public static function lit($string)
-    {
-        return new Expression($string, 'literal');
-    }
-
     public static function urn($string)
     {
         return new Expression($string, 'urn');
+    }
+
+    public static function raw($string)
+    {
+        return new Expression($string, 'raw');
     }
 
     public static function cls($string)
@@ -63,11 +65,12 @@ class Expression
             $this->value = $value;
         }
 
-        if (!is_string($this->value)) {
-            $type = 'literal';
-        }
-
         $this->type = $type;
+    }
+
+    public static function fromLiteral(\EasyRdf\Literal $literal)
+    {
+        return new Expression($literal->getValue(), 'string');
     }
 
     /**
@@ -81,10 +84,7 @@ class Expression
             case 'string':
                 return sprintf('"%s"', $this->value);
 
-            case 'uri':
             case 'urn':
-                return sprintf('<%s>', $this->value);
-
             case 'class':
                 $uri = \EasyRdf\RdfNamespace::expand($this->value);
 
@@ -92,13 +92,18 @@ class Expression
                     return sprintf('<%s>', $uri);
                 }
                 else {
-                    return sprintf('<%s>', $this->value);
+                    if (Str::startsWith($this->value, '_:')) {
+                        return sprintf('<%s>', substr($this->value, 2));
+                    }
+                    else {
+                        return sprintf('<%s>', $this->value);
+                    }
                 }
 
                 break;
 
             case 'param':
-            case 'literal':
+            case 'raw':
             default:
                 return $this->value;
         }

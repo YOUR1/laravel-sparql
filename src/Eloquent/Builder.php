@@ -109,7 +109,7 @@ class Builder
 
     public function setSubject($subject)
     {
-        $this->query->unique_subject = $subject;
+        $this->query->unique_subject = Expression::urn($subject);
     }
 
     private function defaultColumns()
@@ -203,11 +203,20 @@ class Builder
     public function whereKey($id)
     {
         if (is_array($id) || $id instanceof Arrayable) {
-            $this->query->whereIn($this->model->getQualifiedKeyName(), new Expression($id, 'urn'));
-            return $this;
+            $this->query->whereIn($this->model->getQualifiedKeyName(), Expression::urn($id));
+            $ret = $this;
+        }
+        else {
+            $ret = $this->where($this->model->getQualifiedKeyName(), '=', Expression::urn($id));
         }
 
-        return $this->where($this->model->getQualifiedKeyName(), '=', new Expression($id, 'urn'));
+        /*
+            When an explicit key is required, we drop the filter on the RDF type
+            to avoid troubles with non classes hierarchy
+        */
+        $this->from('');
+
+        return $ret;
     }
 
     /**
