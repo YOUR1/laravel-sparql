@@ -82,7 +82,7 @@ class Expression
     {
         switch($this->type) {
             case 'string':
-                return sprintf('"%s"', $this->value);
+                return sprintf('"%s"', addslashes($this->value));
 
             case 'urn':
             case 'class':

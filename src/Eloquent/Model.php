@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Database\ConnectionResolverInterface as Resolver;
 
+use EasyRdf\Literal;
+
 use SolidDataWorkers\SPARQL\Query\Expression;
 use SolidDataWorkers\SPARQL\Eloquent\Concerns\HasRelationships;
 
@@ -62,7 +64,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     protected $table;
 
-    public $id;
+    public $id = null;
 
     /**
      * The primary key for the model.
@@ -359,21 +361,55 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         $normalized_attributes = [];
 
         foreach($attributes as $attr_name => $attr_value) {
-            if (!is_a($attr_value, BaseCollection::class)) {
-                $enclosed = [];
-                $attr_value = array_unique(Arr::wrap($attr_value));
-
-                foreach($attr_value as $attr_key => $value) {
-                    $value = $introspector->encloseProperty($attr_name, $value);
-                    if (is_numeric($attr_key)) {
-                        $enclosed[] = $value;
-                    }
-                    else {
-                        $enclosed[$attr_key] = $value;
-                    }
+            if ($attr_name == 'id') {
+                if (is_a($attr_value, BaseCollection::class)) {
+                    $attr_value = (string) $attr_value->first();
                 }
+                else {
+                    $attr_value = (string) $attr_value;
+                }
+            }
+            else {
+                if (!is_a($attr_value, BaseCollection::class)) {
+                    $enclosed = [];
+                    $attr_value = array_unique(Arr::wrap($attr_value));
 
-                $attr_value = collect($enclosed);
+                    foreach($attr_value as $attr_key => $value) {
+                        $original_value = $value;
+                        $value = null;
+
+                        if (is_a($value, \EasyRdf\Literal::class) || is_a($value, self::class)) {
+                            $value = $original_value;
+                        }
+                        else {
+                            $attr_meta = $introspector->propertyDatatype($attr_name);
+                            $range_type = $attr_meta->range['type'] ?? null;
+                            $range_value = $attr_meta->range['value'] ?? null;
+
+                            if ($range_type == 'uri' && $range_value && Str::startsWith($range_value, 'http://www.w3.org/2001/XMLSchema') == false) {
+                                $model = $this->getModel($attr_meta->range['value']);
+                                if ($model) {
+                                    $relation = new $model();
+                                    $relation->id = (string) $original_value;
+                                    $value = $relation;
+                                }
+                            }
+                        }
+
+                        if (is_null($value)) {
+                            $value = \EasyRdf\Literal::create($original_value);
+                        }
+
+                        if (is_numeric($attr_key)) {
+                            $enclosed[] = $value;
+                        }
+                        else {
+                            $enclosed[$attr_key] = $value;
+                        }
+                    }
+
+                    $attr_value = collect($enclosed);
+                }
             }
 
             $normalized_attributes[$attr_name] = $attr_value;
@@ -384,9 +420,14 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
 
     public function setAttribute($key, $value)
     {
-        $normalized_attributes = $this->normalizeAttribute([$key => $value]);
-        foreach($normalized_attributes as $key => $value) {
-            $this->realSetAttribute($key, $value);
+        if ($key == 'id') {
+            $this->id = (string) $value;
+        }
+        else {
+            $normalized_attributes = $this->normalizeAttribute([$key => $value]);
+            foreach($normalized_attributes as $key => $value) {
+                $this->realSetAttribute($key, $value);
+            }
         }
     }
 
@@ -889,7 +930,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
 
     protected function getSubject()
     {
-        if ($this->exists == false) {
+        if ($this->exists == false && is_null($this->id)) {
             $this->id = sprintf('urn:%s:%s', str_replace(':', '.', $this->getTable()), Str::uuid());
         }
 
@@ -926,7 +967,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
                     $v = Expression::urn($v->id);
                 }
 
-                $final_values[] = (string) $v;
+                $final_values[] = $v;
             }
 
             $final_attributes[$key] = $final_values;
@@ -1580,9 +1621,9 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * @param  mixed  $value
      * @return \Illuminate\Database\Eloquent\Model|null
      */
-    public function resolveRouteBinding($value)
+    public function resolveRouteBinding($value, $field = null)
     {
-        return $this->where($this->getRouteKeyName(), $value)->first();
+        return $this->where($field ?: $this->getRouteKeyName(), $value)->first();
     }
 
     /**

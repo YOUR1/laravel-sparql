@@ -20,6 +20,16 @@ abstract class Grammar
      * @var string
      */
     protected $tablePrefix = '';
+    protected $serializer = null;
+
+    protected function getSerializer()
+    {
+        if (is_null($this->serializer)) {
+            $this->serializer = new \EasyRdf\Serialiser\Turtle();
+        }
+
+        return $this->serializer;
+    }
 
     /**
      * Wrap an array of values.
@@ -66,6 +76,9 @@ abstract class Grammar
     {
         if ($this->isExpression($value)) {
             return $this->getValue($value);
+        }
+        else if ($this->isLiteral($value)) {
+            return $this->getSerializer()->serialiseLiteral($value);
         }
 
         // If the value being wrapped has a column alias we will need to separate out
@@ -176,6 +189,11 @@ abstract class Grammar
     public function isExpression($value)
     {
         return $value instanceof Expression;
+    }
+
+    public function isLiteral($value)
+    {
+        return $value instanceof \EasyRdf\Literal;
     }
 
     /**

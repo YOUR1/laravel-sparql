@@ -12,11 +12,12 @@
     ],
     "license" : "MIT",
     "require": {
-        "illuminate/support": "6.*",
-        "illuminate/container": "6.*",
-        "illuminate/database": "6.*",
-        "illuminate/events": "6.*",
-        "madbob/easyrdf-on-guzzle": "^0.2.0",
+        "illuminate/support": "8.*",
+        "illuminate/container": "8.*",
+        "illuminate/database": "8.*",
+        "illuminate/events": "8.*",
+        "madbob/easyrdf-on-guzzle": "0.3.0",
+        "madbob/lov-api": "0.1.0",
         "ml/json-ld": "^1.2"
     },
     "require-dev": {

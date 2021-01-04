@@ -72,18 +72,12 @@ CLASS;
 
         $this->graph = Cache::rememberForever('sparql_introspector_graph', function() use ($required_namespaces) {
             $graph = new \EasyRdf\Graph();
+            $lov = new \MadBob\LovAPI\LovAPI();
 
             foreach($required_namespaces as $prefix => $url) {
-                /*
-                    Use LOV API
-                    https://lov.linkeddata.es/dataset/lov/api
-                    to retrieve actual ontologies files.
-                */
-                try {
-                    $graph->load($url);
-                }
-                catch(\Exception $e) {
-                    echo "Unable to load ontology from $url\n";
+                $file = $lov->fetchFile($url);
+                if ($file) {
+                    $graph->parse($file);
                 }
             }
 
@@ -212,74 +206,6 @@ CLASS;
 
         $done[$type_uri] = $ret;
         return $ret;
-    }
-
-    /*
-        TODO: permit to customize casts
-    */
-    public function encloseProperty($key, $value)
-    {
-        if (is_array($value)) {
-            $ret = new Collection();
-
-            foreach($value as $v) {
-                $ret->push($this->encloseProperty($key, $v));
-            }
-
-            return $ret;
-        }
-        else {
-            if (is_a($value, Model::class)) {
-                return $value;
-            }
-
-            $value = (string) $value;
-
-            $attr_meta = $this->propertyDatatype($key);
-            if ($attr_meta) {
-                if (isset($attr_meta->range)) {
-                    if ($attr_meta->range['type'] == 'uri') {
-                        switch($attr_meta->range['value']) {
-                            case 'http://www.w3.org/2001/XMLSchema#string':
-                                $value = (string) $value;
-                                break;
-
-                            case 'http://www.w3.org/2001/XMLSchema#date':
-                            case 'http://www.w3.org/2001/XMLSchema#dateTime':
-                                $value = Carbon::parse($value);
-                                break;
-
-                            case 'http://www.w3.org/2001/XMLSchema#integer':
-                            case 'http://www.w3.org/2001/XMLSchema#nonNegativeInteger':
-                            case 'http://www.w3.org/2001/XMLSchema#positiveInteger':
-                                $value = (int) $value;
-                                break;
-
-                            case 'http://www.w3.org/2001/XMLSchema#double':
-                                $value = (double) $value;
-                                break;
-
-                            case 'http://www.w3.org/2001/XMLSchema#boolean':
-                                $true = ['true', '1', 'yes', 'y'];
-                                $value = in_array(mb_strtolower($value), $true);
-                                break;
-
-                            default:
-                                $model = $this->getModel($attr_meta->range['value']);
-                                if ($model) {
-                                    $relation = new $model();
-                                    $relation->id = $value;
-                                    $value = $relation;
-                                }
-
-                                break;
-                        }
-                    }
-                }
-            }
-
-            return $value;
-        }
     }
 
     public function getProperties($rdf_type)

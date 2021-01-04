@@ -980,7 +980,7 @@ class Grammar extends BaseGrammar
 
         foreach($values as $column => $value) {
             foreach($value as $v) {
-                $ret .= sprintf('%s %s %s . ', $this->wrapUri($query->unique_subject), $column, $v);
+                $ret .= sprintf('%s %s %s . ', $this->wrapUri($query->unique_subject), $column, $this->wrap($v));
             }
         }
 
@@ -1152,29 +1152,6 @@ class Grammar extends BaseGrammar
     public function supportsSavepoints()
     {
         return false;
-    }
-
-    /**
-     * Wrap a value in keyword identifiers.
-     *
-     * @param  \Illuminate\Database\Query\Expression|string  $value
-     * @param  bool    $prefixAlias
-     * @return string
-     */
-    public function wrap($value, $prefixAlias = false)
-    {
-        if ($this->isExpression($value)) {
-            return $this->getValue($value);
-        }
-
-        // If the value being wrapped has a column alias we will need to separate out
-        // the pieces so we can wrap each of the segments of the expression on its
-        // own, and then join these both back together using the "as" connector.
-        if (stripos($value, ' as ') !== false) {
-            return $this->wrapAliasedValue($value, $prefixAlias);
-        }
-
-        return $value;
     }
 
     /**
