@@ -16,7 +16,6 @@ class Processor
     {
         $ret = new Collection();
 
-        $introspector = $query->getConnection()->getIntrospector();
         $obj = null;
         $next_column = null;
         $last_id = null;

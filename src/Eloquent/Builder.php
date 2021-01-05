@@ -109,7 +109,7 @@ class Builder
 
     public function setSubject($subject)
     {
-        $this->query->unique_subject = Expression::urn($subject);
+        $this->query->unique_subject = Expression::iri($subject);
     }
 
     private function defaultColumns()
@@ -203,11 +203,11 @@ class Builder
     public function whereKey($id)
     {
         if (is_array($id) || $id instanceof Arrayable) {
-            $this->query->whereIn($this->model->getQualifiedKeyName(), Expression::urn($id));
+            $this->query->whereIn($this->model->getQualifiedKeyName(), Expression::iri($id));
             $ret = $this;
         }
         else {
-            $ret = $this->where($this->model->getQualifiedKeyName(), '=', Expression::urn($id));
+            $ret = $this->where($this->model->getQualifiedKeyName(), '=', Expression::iri($id));
         }
 
         /*
@@ -234,45 +234,6 @@ class Builder
         }
 
         return $this->where($this->model->getQualifiedKeyName(), '!=', $id);
-    }
-
-    /**
-     * Add a basic where clause to the query.
-     *
-     * @param  \Closure|string|array  $column
-     * @param  mixed   $operator
-     * @param  mixed   $value
-     * @param  string  $boolean
-     * @return $this
-     */
-    public function where($column, $operator = null, $value = null, $boolean = 'and')
-    {
-        if ($column instanceof Closure) {
-            $column($query = $this->model->newModelQuery());
-            $this->query->addNestedWhereQuery($query->getQuery(), $boolean);
-        }
-        else {
-            $this->query->where(...func_get_args());
-        }
-
-        return $this;
-    }
-
-    /**
-     * Add an "or where" clause to the query.
-     *
-     * @param  \Closure|array|string  $column
-     * @param  mixed  $operator
-     * @param  mixed  $value
-     * @return \Illuminate\Database\Eloquent\Builder|static
-     */
-    public function orWhere($column, $operator = null, $value = null)
-    {
-        [$value, $operator] = $this->query->prepareValueAndOperator(
-            $value, $operator, func_num_args() === 2
-        );
-
-        return $this->where($column, $operator, $value, 'or');
     }
 
     /**

@@ -89,9 +89,10 @@ class Connection extends BaseConnection
 
             // echo $query . "\n";
             // print_r($bindings);
-            echo $binded_query . "\n";
+            // echo $binded_query . "\n";
 
-            return $this->connection->query($binded_query);
+            $ret = $this->connection->query($binded_query);
+            return $ret;
         });
     }
 
@@ -199,6 +200,7 @@ class Connection extends BaseConnection
             $this->httpclient->setOptions('handler', $stack);
         }
 
+        \EasyRdf\Literal::setDatatypeMapping('xsd:double', 'SolidDataWorkers\SPARQL\Query\Literal\Double');
         \EasyRdf\Http::setDefaultHttpClient($this->httpclient);
 
         return new \EasyRdf\Sparql\Client($config['host']);

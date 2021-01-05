@@ -152,7 +152,7 @@ class Grammar extends BaseGrammar
     protected function compileFrom(Builder $query, $table)
     {
         if (!empty($table)) {
-            $query->where('rdf:type', Expression::cls($table));
+            $query->where('rdf:type', Expression::iri($table));
         }
 
         return '';
@@ -350,7 +350,7 @@ class Grammar extends BaseGrammar
     {
         switch($where['operator']) {
             case '=':
-                $value = $this->parameter($where['value']);
+                $value = '?';
                 break;
 
             case 'in':

@@ -964,7 +964,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
 
             foreach($value as $v) {
                 if (is_a($v, self::class)) {
-                    $v = Expression::urn($v->id);
+                    $v = Expression::iri($v->id);
                 }
 
                 $final_values[] = $v;

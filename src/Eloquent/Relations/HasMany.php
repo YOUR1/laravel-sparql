@@ -96,7 +96,7 @@ class HasMany extends Relation
         $keys = [];
 
         foreach($this->getKeys($models, $this->foreignKey) as $k) {
-            $keys[] = Expression::urn($k);
+            $keys[] = Expression::iri($k);
         }
 
         $this->query->whereIn($this->current_subject, $keys);

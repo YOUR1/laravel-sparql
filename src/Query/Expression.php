@@ -25,24 +25,24 @@ class Expression
      */
     protected $type;
 
+    public static function lit($literal)
+    {
+        return new Expression($literal, 'literal');
+    }
+
     public static function str($string)
     {
         return new Expression($string, 'string');
     }
 
-    public static function urn($string)
+    public static function iri($string)
     {
-        return new Expression($string, 'urn');
+        return new Expression($string, 'iri');
     }
 
     public static function raw($string)
     {
         return new Expression($string, 'raw');
-    }
-
-    public static function cls($string)
-    {
-        return new Expression($string, 'class');
     }
 
     public static function par($string)
@@ -56,21 +56,27 @@ class Expression
      * @param  mixed  $value
      * @return void
      */
-    public function __construct($value, $type = 'string')
+    public function __construct($value, $type = null)
     {
         if (is_a($value, self::class)) {
             $this->value = $value->value;
+            $this->type = $value->type;
         }
         else {
+            if (!$type) {
+                $test_type = \EasyRdf\Literal::getDatatypeForValue($value);
+                if ($test_type) {
+                    $value = \EasyRdf\Literal::create($value, null, $test_type);
+                    $type = 'literal';
+                }
+                else {
+                    $type = 'string';
+                }
+            }
+
             $this->value = $value;
+            $this->type = $type;
         }
-
-        $this->type = $type;
-    }
-
-    public static function fromLiteral(\EasyRdf\Literal $literal)
-    {
-        return new Expression($literal->getValue(), 'string');
     }
 
     /**
@@ -81,11 +87,13 @@ class Expression
     public function getValue()
     {
         switch($this->type) {
+            case 'literal':
+                return $this->value->getValue();
+
             case 'string':
                 return sprintf('"%s"', addslashes($this->value));
 
-            case 'urn':
-            case 'class':
+            case 'iri':
                 $uri = \EasyRdf\RdfNamespace::expand($this->value);
 
                 if (filter_var($uri, FILTER_VALIDATE_URL)) {
@@ -104,8 +112,10 @@ class Expression
 
             case 'param':
             case 'raw':
-            default:
                 return $this->value;
+
+            default:
+                throw new \Exception("Unrecognized data type", 1);
         }
     }
 

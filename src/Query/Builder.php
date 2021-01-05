@@ -790,7 +790,7 @@ class Builder
         }
 
         if (!($value instanceof Expression)) {
-            $value = Expression::str($value);
+            $value = new Expression($value);
         }
 
         return [$value, $operator];
@@ -1442,7 +1442,9 @@ class Builder
      */
     public function forNestedWhere()
     {
-        return $this->newQuery()->from($this->from);
+        $ret = $this->newQuery()->from($this->from);
+        $ret->unique_subject = $this->unique_subject;
+        return $ret;
     }
 
     /**
@@ -2567,13 +2569,10 @@ class Builder
         $results = $this->cloneWithout($this->unions ? [] : ['columns'])
                         ->cloneWithoutBindings($this->unions ? [] : ['select'])
                         ->setAggregate($function, $columns)
-                        ->get($columns);
+                        ->get();
 
         if (! $results->isEmpty()) {
-            return $results->first()->aggregate;
-        }
-        else {
-            return 0;
+            return (array_change_key_case((array) $results[0])['aggregate'][0])->getValue();
         }
     }
 
@@ -2601,6 +2600,10 @@ class Builder
 
         if (is_numeric($result)) {
             return $result;
+        }
+
+        if (is_a($result, '\EasyRdf\Literal')) {
+            return $result->getValue();
         }
 
         // If the result doesn't contain a decimal place, we will assume it is an int then
