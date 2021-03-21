@@ -976,15 +976,24 @@ class Grammar extends BaseGrammar
             $ret .= ' INTO ' . $this->wrapUri($graph);
         }
 
-        $ret .= ' {';
+        $subject = '_:node';
+        $data = [];
 
         foreach($values as $column => $value) {
-            foreach($value as $v) {
-                $ret .= sprintf('%s %s %s . ', $this->wrapUri($query->unique_subject), $column, $this->wrap($v));
+            if ($column == 'id') {
+                $value = Arr::wrap($value);
+                $subject = $this->wrapUri(array_shift($value));
+            }
+            else {
+                foreach(Arr::wrap($value) as $v) {
+                    $data[] = sprintf('%s %s', $column, (new Expression($v))->getValue());
+                }
             }
         }
 
-        $ret .= ' }';
+        $data[] = sprintf('rdf:type %s', Expression::iri($query->from)->getValue());
+
+        $ret .= sprintf(" { %s %s }", $subject, join('; ', $data));
 
         return $ret;
     }
@@ -1011,7 +1020,7 @@ class Grammar extends BaseGrammar
      */
     public function compileInsertGetId(Builder $query, $values, $sequence)
     {
-        return $this->compileInsert($query, $values);
+        throw new RuntimeException('This database engine does not support inserting while generating a new ID.');
     }
 
     /**
