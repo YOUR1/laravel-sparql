@@ -31,7 +31,6 @@ use SolidDataWorkers\SPARQL\Eloquent\Concerns\HasRelationships;
 use Illuminate\Database\Eloquent\Concerns\HasAttributes;
 use Illuminate\Database\Eloquent\Concerns\HasEvents;
 use Illuminate\Database\Eloquent\Concerns\HasGlobalScopes;
-use Illuminate\Database\Eloquent\Concerns\HasTimestamps;
 use Illuminate\Database\Eloquent\Concerns\HidesAttributes;
 use Illuminate\Database\Eloquent\Concerns\GuardsAttributes;
 
@@ -40,7 +39,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     use HasEvents,
         HasGlobalScopes,
         HasRelationships,
-        HasTimestamps,
         HidesAttributes,
         GuardsAttributes,
         ForwardsCalls,
@@ -165,20 +163,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     protected static $ignoreOnTouch = [];
 
     private $resource_descriptor = null;
-
-    /**
-     * The name of the "created at" column.
-     *
-     * @var string
-     */
-    const CREATED_AT = 'created_at';
-
-    /**
-     * The name of the "updated at" column.
-     *
-     * @var string
-     */
-    const UPDATED_AT = 'updated_at';
 
     /**
      * Create a new Eloquent model instance.
@@ -318,19 +302,12 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public static function isIgnoringTouch($class = null)
     {
-        $class = $class ?: static::class;
+        return true;
+    }
 
-        if (! get_class_vars($class)['timestamps'] || ! $class::UPDATED_AT) {
-            return true;
-        }
-
-        foreach (static::$ignoreOnTouch as $ignoredClass) {
-            if ($class === $ignoredClass || is_subclass_of($class, $ignoredClass)) {
-                return true;
-            }
-        }
-
-        return false;
+    public function getDates()
+    {
+        return $this->dates;
     }
 
     public function allAttributes()
@@ -1306,8 +1283,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     {
         $defaults = [
             $this->getKeyName(),
-            $this->getCreatedAtColumn(),
-            $this->getUpdatedAtColumn(),
         ];
 
         $attributes = Arr::except(

@@ -87,9 +87,9 @@ class Connection extends BaseConnection
 
             $binded_query = $this->altBindValues($query, $bindings);
 
-            // echo $query . "\n";
-            // print_r($bindings);
-            // echo $binded_query . "\n";
+            echo $query . "\n";
+            print_r($bindings);
+            echo $binded_query . "\n";
 
             $ret = $this->connection->query($binded_query);
             return $ret;

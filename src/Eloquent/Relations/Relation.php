@@ -160,13 +160,7 @@ abstract class Relation
      */
     public function touch()
     {
-        $model = $this->getRelated();
-
-        if (! $model::isIgnoringTouch()) {
-            $this->rawUpdate([
-                $model->getUpdatedAtColumn() => $model->freshTimestampString(),
-            ]);
-        }
+        // dummy
     }
 
     /**
@@ -273,36 +267,6 @@ abstract class Relation
     public function getRelated()
     {
         return $this->related;
-    }
-
-    /**
-     * Get the name of the "created at" column.
-     *
-     * @return string
-     */
-    public function createdAt()
-    {
-        return $this->parent->getCreatedAtColumn();
-    }
-
-    /**
-     * Get the name of the "updated at" column.
-     *
-     * @return string
-     */
-    public function updatedAt()
-    {
-        return $this->parent->getUpdatedAtColumn();
-    }
-
-    /**
-     * Get the name of the related model's "updated at" column.
-     *
-     * @return string
-     */
-    public function relatedUpdatedAt()
-    {
-        return $this->related->getUpdatedAtColumn();
     }
 
     /**

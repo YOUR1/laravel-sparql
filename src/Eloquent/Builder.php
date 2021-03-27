@@ -237,40 +237,6 @@ class Builder
     }
 
     /**
-     * Add an "order by" clause for a timestamp to the query.
-     *
-     * @param  string  $column
-     * @return $this
-     */
-    public function latest($column = null)
-    {
-        if (is_null($column)) {
-            $column = $this->model->getCreatedAtColumn() ?? 'created_at';
-        }
-
-        $this->query->latest($column);
-
-        return $this;
-    }
-
-    /**
-     * Add an "order by" clause for a timestamp to the query.
-     *
-     * @param  string  $column
-     * @return $this
-     */
-    public function oldest($column = null)
-    {
-        if (is_null($column)) {
-            $column = $this->model->getCreatedAtColumn() ?? 'created_at';
-        }
-
-        $this->query->oldest($column);
-
-        return $this;
-    }
-
-    /**
      * Create a collection of models from plain arrays.
      *
      * @param  array  $items
@@ -767,7 +733,7 @@ class Builder
      */
     public function update(array $values)
     {
-        return $this->toBase()->update($this->addUpdatedAtColumn($values));
+        return $this->toBase()->update($values);
     }
 
     /**
@@ -780,9 +746,7 @@ class Builder
      */
     public function increment($column, $amount = 1, array $extra = [])
     {
-        return $this->toBase()->increment(
-            $column, $amount, $this->addUpdatedAtColumn($extra)
-        );
+        return $this->toBase()->increment($column, $amount, $extra);
     }
 
     /**
@@ -795,40 +759,7 @@ class Builder
      */
     public function decrement($column, $amount = 1, array $extra = [])
     {
-        return $this->toBase()->decrement(
-            $column, $amount, $this->addUpdatedAtColumn($extra)
-        );
-    }
-
-    /**
-     * Add the "updated at" column to an array of values.
-     *
-     * @param  array  $values
-     * @return array
-     */
-    protected function addUpdatedAtColumn(array $values)
-    {
-        if (! $this->model->usesTimestamps() ||
-            is_null($this->model->getUpdatedAtColumn())) {
-            return $values;
-        }
-
-        $column = $this->model->getUpdatedAtColumn();
-
-        $values = array_merge(
-            [$column => $this->model->freshTimestampString()],
-            $values
-        );
-
-        $segments = preg_split('/\s+as\s+/i', $this->query->from);
-
-        $qualifiedColumn = end($segments).'.'.$column;
-
-        $values[$qualifiedColumn] = $values[$column];
-
-        unset($values[$column]);
-
-        return $values;
+        return $this->toBase()->decrement($column, $amount, $extra);
     }
 
     /**
