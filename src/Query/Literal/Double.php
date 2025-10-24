@@ -1,6 +1,6 @@
 <?php
 
-namespace SolidDataWorkers\SPARQL\Query\Literal;
+namespace LinkedData\SPARQL\Query\Literal;
 
 class Double extends \EasyRdf\Literal
 {
@@ -9,8 +9,8 @@ class Double extends \EasyRdf\Literal
         parent::__construct($value, null, $datatype);
     }
 
-    public function getValue()
+    public function getValue(): float
     {
-        return (double) $this->value;
+        return (float) $this->value;
     }
 }

@@ -1,0 +1,25 @@
+services:
+  fuseki:
+    image: stain/jena-fuseki:latest
+    container_name: sparql-fuseki
+    ports:
+      - "3030:3030"
+    environment:
+      - ADMIN_PASSWORD=admin
+      - JVM_ARGS=-Xmx2g
+    volumes:
+      - ./fuseki-config:/fuseki-config:ro
+      - fuseki-data:/fuseki
+    command: >
+      /bin/bash -c "
+      /jena-fuseki/fuseki-server --config=/fuseki-config/config.ttl
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/$/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  fuseki-data:
+    driver: local

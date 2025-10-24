@@ -1,2 +1,22 @@
 /vendor
 composer.lock
+var/
+
+# Docker
+.docker/
+fuseki-data/
+
+# PHPUnit
+.phpunit.cache/
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

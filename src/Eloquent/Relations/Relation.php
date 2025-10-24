@@ -1,23 +1,18 @@
 <?php
 
-/*
-SPDX-FileCopyrightText: 2020, Roberto Guido
-SPDX-License-Identifier: MIT
-*/
-
-namespace SolidDataWorkers\SPARQL\Eloquent\Relations;
+namespace LinkedData\SPARQL\Eloquent\Relations;
 
 use Closure;
-use Illuminate\Support\Arr;
-use SolidDataWorkers\SPARQL\Eloquent\Builder;
-use SolidDataWorkers\SPARQL\Eloquent\Model;
-use SolidDataWorkers\SPARQL\Query\Expression;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Traits\ForwardsCalls;
 use Illuminate\Support\Traits\Macroable;
+use LinkedData\SPARQL\Eloquent\Builder;
+use LinkedData\SPARQL\Eloquent\Model;
+use LinkedData\SPARQL\Query\Expression;
 
 /**
- * @mixin \Illuminate\Database\Eloquent\Builder
+ * @mixin \LinkedData\SPARQL\Eloquent\Builder
  */
 abstract class Relation
 {
@@ -28,21 +23,21 @@ abstract class Relation
     /**
      * The Eloquent query builder instance.
      *
-     * @var \Illuminate\Database\Eloquent\Builder
+     * @var \LinkedData\SPARQL\Eloquent\Builder
      */
     protected $query;
 
     /**
      * The parent model instance.
      *
-     * @var \Illuminate\Database\Eloquent\Model
+     * @var \LinkedData\SPARQL\Eloquent\Model
      */
     protected $parent;
 
     /**
      * The related model instance.
      *
-     * @var \Illuminate\Database\Eloquent\Model
+     * @var \LinkedData\SPARQL\Eloquent\Model
      */
     protected $related;
 
@@ -54,10 +49,15 @@ abstract class Relation
     protected static $constraints = true;
 
     /**
+     * An array to map class names to their morph names in the database.
+     *
+     * @var array
+     */
+    protected static $morphMap = [];
+
+    /**
      * Create a new relation instance.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  \Illuminate\Database\Eloquent\Model  $parent
      * @return void
      */
     public function __construct(Builder $query, Model $parent)
@@ -72,7 +72,6 @@ abstract class Relation
     /**
      * Run a callback with constraints disabled on the relation.
      *
-     * @param  \Closure  $callback
      * @return mixed
      */
     public static function noConstraints(Closure $callback)
@@ -101,7 +100,6 @@ abstract class Relation
     /**
      * Set the constraints for an eager load of the relation.
      *
-     * @param  array  $models
      * @return void
      */
     abstract public function addEagerConstraints(array $models);
@@ -109,7 +107,6 @@ abstract class Relation
     /**
      * Initialize the relation on a set of models.
      *
-     * @param  array  $models
      * @param  string  $relation
      * @return array
      */
@@ -118,8 +115,6 @@ abstract class Relation
     /**
      * Match the eagerly loaded results to their parents.
      *
-     * @param  array  $models
-     * @param  \Illuminate\Database\Eloquent\Collection  $results
      * @param  string  $relation
      * @return array
      */
@@ -166,7 +161,6 @@ abstract class Relation
     /**
      * Run a raw update against the base query.
      *
-     * @param  array  $attributes
      * @return int
      */
     public function rawUpdate(array $attributes = [])
@@ -179,12 +173,14 @@ abstract class Relation
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  \Illuminate\Database\Eloquent\Builder  $parentQuery
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \LinkedData\SPARQL\Eloquent\Builder
      */
     public function getRelationExistenceCountQuery(Builder $query, Builder $parentQuery)
     {
         return $this->getRelationExistenceQuery(
-            $query, $parentQuery, new Expression('count(*)')
+            $query,
+            $parentQuery,
+            new Expression('count(*)')
         )->setBindings([], 'select');
     }
 
@@ -196,19 +192,20 @@ abstract class Relation
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  \Illuminate\Database\Eloquent\Builder  $parentQuery
      * @param  array|mixed  $columns
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \LinkedData\SPARQL\Eloquent\Builder
      */
     public function getRelationExistenceQuery(Builder $query, Builder $parentQuery, $columns = ['*'])
     {
         return $query->select($columns)->whereColumn(
-            $this->getQualifiedParentKeyName(), '=', $this->getExistenceCompareKey()
+            $this->getQualifiedParentKeyName(),
+            '=',
+            $this->getExistenceCompareKey()
         );
     }
 
     /**
      * Get all of the primary keys for an array of models.
      *
-     * @param  array  $models
      * @param  string  $key
      * @return array
      */
@@ -222,7 +219,7 @@ abstract class Relation
     /**
      * Get the underlying query for the relation.
      *
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \LinkedData\SPARQL\Eloquent\Builder
      */
     public function getQuery()
     {
@@ -278,7 +275,7 @@ abstract class Relation
      */
     protected function whereInMethod(Model $model, $key)
     {
-        return $model->getKeyName() === last(explode('.', $key))
+        return $model->getKeyName() === Arr::last(explode('.', $key))
                     && in_array($model->getKeyType(), ['int', 'integer'])
                         ? 'whereIntegerInRaw'
                         : 'whereIn';
@@ -314,5 +311,22 @@ abstract class Relation
     public function __clone()
     {
         $this->query = clone $this->query;
+    }
+
+    /**
+     * Set or get the morph map for polymorphic relations.
+     *
+     * @param  bool  $merge
+     * @return array
+     */
+    public static function morphMap(?array $map = null, $merge = true)
+    {
+        if (is_array($map)) {
+            static::$morphMap = $merge && static::$morphMap
+                ? $map + static::$morphMap
+                : $map;
+        }
+
+        return static::$morphMap;
     }
 }

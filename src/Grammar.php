@@ -1,14 +1,9 @@
 <?php
 
-/*
-SPDX-FileCopyrightText: 2020, Roberto Guido
-SPDX-License-Identifier: MIT
-*/
-
-namespace SolidDataWorkers\SPARQL;
+namespace LinkedData\SPARQL;
 
 use Illuminate\Support\Traits\Macroable;
-use SolidDataWorkers\SPARQL\Query\Expression;
+use LinkedData\SPARQL\Query\Expression;
 
 abstract class Grammar
 {
@@ -20,12 +15,13 @@ abstract class Grammar
      * @var string
      */
     protected $tablePrefix = '';
+
     protected $serializer = null;
 
     protected function getSerializer()
     {
         if (is_null($this->serializer)) {
-            $this->serializer = new \EasyRdf\Serialiser\Turtle();
+            $this->serializer = new \EasyRdf\Serialiser\Turtle;
         }
 
         return $this->serializer;
@@ -34,7 +30,6 @@ abstract class Grammar
     /**
      * Wrap an array of values.
      *
-     * @param  array  $values
      * @return array
      */
     public function wrapArray(array $values)
@@ -43,7 +38,15 @@ abstract class Grammar
     }
 
     /**
-     * Wrap a URI in keyword identifiers.
+     * Wrap a URI/IRI in keyword identifiers.
+     *
+     * Handles:
+     * - Expression objects
+     * - Namespace prefix expansion (e.g., "foaf:Person" -> "http://xmlns.com/foaf/0.1/Person")
+     * - URL validation
+     * - URN validation
+     * - Blank node identifiers (_:node)
+     * - IRI validation (IRIs with Unicode characters)
      *
      * @param  \Illuminate\Database\Query\Expression|string  $uri
      * @return string
@@ -54,12 +57,78 @@ abstract class Grammar
             return $uri->getValue();
         }
 
-        $uri = \EasyRdf\RdfNamespace::expand($uri);
-        if (filter_var($uri, FILTER_VALIDATE_URL)) {
+        // Handle blank nodes (they should be wrapped in angle brackets)
+        if (is_string($uri) && str_starts_with($uri, '_:')) {
             return sprintf('<%s>', $uri);
         }
-        else if (preg_match('/^urn(:[^:]*)*$/', $uri) === 1) {
-            return sprintf('<%s>', $uri);
+
+        // Expand namespace prefixes (e.g., foaf:Person -> http://xmlns.com/foaf/0.1/Person)
+        $expandedUri = \EasyRdf\RdfNamespace::expand($uri);
+
+        // Validate URL (ASCII URIs)
+        if (filter_var($expandedUri, FILTER_VALIDATE_URL)) {
+            return sprintf('<%s>', $this->normalizeUri($expandedUri));
+        }
+
+        // Validate URN format
+        if (preg_match('/^urn(:[^:]*)*$/', $expandedUri) === 1) {
+            return sprintf('<%s>', $expandedUri);
+        }
+
+        // Validate IRI (may contain Unicode characters)
+        // RFC 3987 defines IRIs as extending URIs to include Unicode characters
+        if ($this->isValidIri($expandedUri)) {
+            return sprintf('<%s>', $this->normalizeUri($expandedUri));
+        }
+
+        // Return as-is if it's a prefixed name or variable
+        return $uri;
+    }
+
+    /**
+     * Check if a string is a valid IRI (Internationalized Resource Identifier).
+     *
+     * IRIs extend URIs to allow Unicode characters.
+     * This is a simplified validation based on RFC 3987.
+     *
+     * @param  string  $iri
+     * @return bool
+     */
+    protected function isValidIri($iri)
+    {
+        // Must contain a scheme separator
+        if (! str_contains($iri, ':')) {
+            return false;
+        }
+
+        // Basic IRI pattern: scheme:path
+        // Allow Unicode characters in the path
+        $pattern = '/^[a-z][a-z0-9+.\-]*:.+/ui';
+
+        return preg_match($pattern, $iri) === 1;
+    }
+
+    /**
+     * Normalize a URI/IRI.
+     *
+     * Performs basic normalization like removing extra slashes,
+     * but preserves the overall structure.
+     *
+     * @param  string  $uri
+     * @return string
+     */
+    protected function normalizeUri($uri)
+    {
+        // Remove any existing angle brackets
+        $uri = trim($uri, '<>');
+
+        // Normalize excessive slashes (but not in the scheme part)
+        if (preg_match('/^([a-z][a-z0-9+.\-]*:\/\/)(.+)/i', $uri, $matches)) {
+            $scheme = $matches[1];
+            $path = $matches[2];
+            // Reduce multiple slashes to single slash in path
+            $path = preg_replace('/\/+/', '/', $path);
+            $uri = $scheme . $path;
         }
 
         return $uri;
@@ -69,15 +138,14 @@ abstract class Grammar
      * Wrap a value in keyword identifiers.
      *
      * @param  \Illuminate\Database\Query\Expression|string  $value
-     * @param  bool    $prefixAlias
+     * @param  bool  $prefixAlias
      * @return string
      */
     public function wrap($value, $prefixAlias = false)
     {
         if ($this->isExpression($value)) {
             return $this->getValue($value);
-        }
-        else if ($this->isLiteral($value)) {
+        } elseif ($this->isLiteral($value)) {
             return $this->getSerializer()->serialiseLiteral($value);
         }
 
@@ -106,11 +174,13 @@ abstract class Grammar
         // as well in order to generate proper syntax. If this is a column of course
         // no prefix is necessary.
         if ($prefixAlias) {
-            $segments[1] = $this->tablePrefix.$segments[1];
+            $segments[1] = $this->tablePrefix . $segments[1];
         }
 
         return $this->wrap(
-            $segments[0]).' as '.$this->wrapValue($segments[1]
+            $segments[0]
+        ) . ' as ' . $this->wrapValue(
+            $segments[1]
         );
     }
 
@@ -123,7 +193,7 @@ abstract class Grammar
     protected function wrapValue($value)
     {
         if ($value !== '*') {
-            return '"'.str_replace('"', '""', $value).'"';
+            return '"' . str_replace('"', '""', $value) . '"';
         }
 
         return $value;
@@ -132,7 +202,6 @@ abstract class Grammar
     /**
      * Convert an array of column names into a delimited string.
      *
-     * @param  array   $columns
      * @return string
      */
     public function columnize(array $columns)
@@ -143,7 +212,6 @@ abstract class Grammar
     /**
      * Create query parameter place-holders for an array.
      *
-     * @param  array   $values
      * @return string
      */
     public function parameterize(array $values)
@@ -157,7 +225,7 @@ abstract class Grammar
     /**
      * Get the appropriate query parameter place-holder for a value.
      *
-     * @param  mixed   $value
+     * @param  mixed  $value
      * @return string
      */
     public function parameter($value)
@@ -199,7 +267,7 @@ abstract class Grammar
     /**
      * Get the value of a raw expression.
      *
-     * @param  \Illuminate\Database\Query\Expression  $expression
+     * @param  \Illuminate\Database\Query\Expression|\LinkedData\SPARQL\Query\Expression  $expression
      * @return string
      */
     public function getValue($expression)

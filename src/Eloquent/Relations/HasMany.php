@@ -1,12 +1,11 @@
 <?php
 
-namespace SolidDataWorkers\SPARQL\Eloquent\Relations;
+namespace LinkedData\SPARQL\Eloquent\Relations;
 
 use Illuminate\Database\Eloquent\Collection;
-
-use SolidDataWorkers\SPARQL\Eloquent\Builder;
-use SolidDataWorkers\SPARQL\Eloquent\Model;
-use SolidDataWorkers\SPARQL\Query\Expression;
+use LinkedData\SPARQL\Eloquent\Builder;
+use LinkedData\SPARQL\Eloquent\Model;
+use LinkedData\SPARQL\Query\Expression;
 
 class HasMany extends Relation
 {
@@ -36,8 +35,6 @@ class HasMany extends Relation
     /**
      * Create a new has one or many relationship instance.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  \Illuminate\Database\Eloquent\Model  $parent
      * @param  string  $foreignKey
      * @param  string  $localKey
      * @return void
@@ -60,8 +57,7 @@ class HasMany extends Relation
     /**
      * Create and return an un-saved instance of the related model.
      *
-     * @param  array  $attributes
-     * @return \Illuminate\Database\Eloquent\Model
+     * @return \LinkedData\SPARQL\Eloquent\Model
      */
     public function make(array $attributes = [])
     {
@@ -88,14 +84,13 @@ class HasMany extends Relation
     /**
      * Set the constraints for an eager load of the relation.
      *
-     * @param  array  $models
      * @return void
      */
     public function addEagerConstraints(array $models)
     {
         $keys = [];
 
-        foreach($this->getKeys($models, $this->foreignKey) as $k) {
+        foreach ($this->getKeys($models, $this->foreignKey) as $k) {
             $keys[] = Expression::iri($k);
         }
 
@@ -105,8 +100,6 @@ class HasMany extends Relation
     /**
      * Match the eagerly loaded results to their single parents.
      *
-     * @param  array  $models
-     * @param  \Illuminate\Database\Eloquent\Collection  $results
      * @param  string  $relation
      * @return array
      */
@@ -118,8 +111,6 @@ class HasMany extends Relation
     /**
      * Match the eagerly loaded results to their many parents.
      *
-     * @param  array  $models
-     * @param  \Illuminate\Database\Eloquent\Collection  $results
      * @param  string  $relation
      * @return array
      */
@@ -131,8 +122,6 @@ class HasMany extends Relation
     /**
      * Match the eagerly loaded results to their many parents.
      *
-     * @param  array  $models
-     * @param  \Illuminate\Database\Eloquent\Collection  $results
      * @param  string  $relation
      * @param  string  $type
      * @return array
@@ -147,7 +136,8 @@ class HasMany extends Relation
         foreach ($models as $model) {
             if (isset($dictionary[$key = $model->id])) {
                 $model->setRelation(
-                    $relation, $this->getRelationValue($dictionary, $key, $type)
+                    $relation,
+                    $this->getRelationValue($dictionary, $key, $type)
                 );
             }
         }
@@ -158,7 +148,6 @@ class HasMany extends Relation
     /**
      * Get the value of a relationship by one or many type.
      *
-     * @param  array  $dictionary
      * @param  string  $key
      * @param  string  $type
      * @return mixed
@@ -173,12 +162,11 @@ class HasMany extends Relation
     /**
      * Build model dictionary keyed by the relation's foreign key.
      *
-     * @param  \Illuminate\Database\Eloquent\Collection  $results
      * @return array
      */
     protected function buildDictionary(Collection $results)
     {
-        $foreign = $this->localKey;
+        $foreign = $this->foreignKey;
         $ret = [];
 
         /*
@@ -190,15 +178,42 @@ class HasMany extends Relation
             attribute.
         */
 
-        foreach($results as $result) {
+        foreach ($results as $result) {
             $related = $result->{$foreign};
-            foreach($related as $r) {
-                if (!isset($ret[$r->id])) {
-                    $ret[$r->id] = [];
-                }
-                $ret[$r->id][] = $result;
+
+            // Handle hybrid approach: Collections (old), arrays (new), or scalars
+            if ($related instanceof \Illuminate\Support\Collection) {
+                $relatedArray = $related->all();
+            } elseif (is_array($related)) {
+                $relatedArray = $related;
+            } else {
+                $relatedArray = [$related];
             }
-            $result->offsetUnset($foreign, true);
+
+            foreach ($relatedArray as $r) {
+                // Handle both objects (models) and scalars (URIs) in hybrid approach
+                if (is_object($r) && method_exists($r, 'getKey')) {
+                    // Eloquent model - use getKey() method
+                    $key = $r->getKey();
+                } elseif (is_object($r) && property_exists($r, 'id')) {
+                    // Object with id property
+                    $key = $r->id;
+                } elseif (is_array($r) && isset($r['value'])) {
+                    // Handle language-tagged or datatyped values
+                    $key = $r['value'];
+                } elseif (is_scalar($r)) {
+                    $key = (string) $r;
+                } else {
+                    // Skip invalid values
+                    continue;
+                }
+
+                if (! isset($ret[$key])) {
+                    $ret[$key] = [];
+                }
+                $ret[$key][] = $result;
+            }
+            $result->unsetAttribute($foreign, true);
         }
 
         return $ret;
@@ -225,9 +240,7 @@ class HasMany extends Relation
     /**
      * Get the first related model record matching the attributes or instantiate it.
      *
-     * @param  array  $attributes
-     * @param  array  $values
-     * @return \Illuminate\Database\Eloquent\Model
+     * @return \LinkedData\SPARQL\Eloquent\Model
      */
     public function firstOrNew(array $attributes, array $values = [])
     {
@@ -243,9 +256,7 @@ class HasMany extends Relation
     /**
      * Get the first related record matching the attributes or create it.
      *
-     * @param  array  $attributes
-     * @param  array  $values
-     * @return \Illuminate\Database\Eloquent\Model
+     * @return \LinkedData\SPARQL\Eloquent\Model
      */
     public function firstOrCreate(array $attributes, array $values = [])
     {
@@ -259,9 +270,7 @@ class HasMany extends Relation
     /**
      * Create or update a related record matching the attributes, and fill it with values.
      *
-     * @param  array  $attributes
-     * @param  array  $values
-     * @return \Illuminate\Database\Eloquent\Model
+     * @return \LinkedData\SPARQL\Eloquent\Model
      */
     public function updateOrCreate(array $attributes, array $values = [])
     {
@@ -275,8 +284,7 @@ class HasMany extends Relation
     /**
      * Attach a model instance to the parent model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
-     * @return \Illuminate\Database\Eloquent\Model|false
+     * @return \LinkedData\SPARQL\Eloquent\Model|false
      */
     public function save(Model $model)
     {
@@ -303,8 +311,7 @@ class HasMany extends Relation
     /**
      * Create a new instance of the related model.
      *
-     * @param  array  $attributes
-     * @return \Illuminate\Database\Eloquent\Model
+     * @return \LinkedData\SPARQL\Eloquent\Model
      */
     public function create(array $attributes = [])
     {
@@ -318,7 +325,6 @@ class HasMany extends Relation
     /**
      * Create a Collection of new instances of the related model.
      *
-     * @param  iterable  $records
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function createMany(iterable $records)
@@ -335,10 +341,9 @@ class HasMany extends Relation
     /**
      * Set the foreign ID for creating a related model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return void
      */
-    protected function setForeignAttributesForCreate(Model $model)
+    public function setForeignAttributesForCreate(Model $model)
     {
         $model->setAttribute($this->getForeignKeyName(), $this->getParentKey());
     }
@@ -346,10 +351,9 @@ class HasMany extends Relation
     /**
      * Add the constraints for a relationship query.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  \Illuminate\Database\Eloquent\Builder  $parentQuery
      * @param  array|mixed  $columns
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \LinkedData\SPARQL\Eloquent\Builder
      */
     public function getRelationExistenceQuery(Builder $query, Builder $parentQuery, $columns = ['*'])
     {
@@ -363,19 +367,20 @@ class HasMany extends Relation
     /**
      * Add the constraints for a relationship query on the same table.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  \Illuminate\Database\Eloquent\Builder  $parentQuery
      * @param  array|mixed  $columns
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \LinkedData\SPARQL\Eloquent\Builder
      */
     public function getRelationExistenceQueryForSelfRelation(Builder $query, Builder $parentQuery, $columns = ['*'])
     {
-        $query->from($query->getModel()->getTable().' as '.$hash = $this->getRelationCountHash());
+        $query->from($query->getModel()->getTable() . ' as ' . $hash = $this->getRelationCountHash());
 
         $query->getModel()->setTable($hash);
 
         return $query->select($columns)->whereColumn(
-            $this->getQualifiedParentKeyName(), '=', $hash.'.'.$this->getForeignKeyName()
+            $this->getQualifiedParentKeyName(),
+            '=',
+            $hash . '.' . $this->getForeignKeyName()
         );
     }
 
@@ -386,7 +391,7 @@ class HasMany extends Relation
      */
     public function getRelationCountHash()
     {
-        return 'laravel_reserved_'.static::$selfJoinCount++;
+        return 'laravel_reserved_' . static::$selfJoinCount++;
     }
 
     /**
@@ -466,7 +471,6 @@ class HasMany extends Relation
     /**
      * Initialize the relation on a set of models.
      *
-     * @param  array  $models
      * @param  string  $relation
      * @return array
      */
@@ -482,8 +486,6 @@ class HasMany extends Relation
     /**
      * Match the eagerly loaded results to their parents.
      *
-     * @param  array  $models
-     * @param  \Illuminate\Database\Eloquent\Collection  $results
      * @param  string  $relation
      * @return array
      */

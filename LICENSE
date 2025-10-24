@@ -1,0 +1,22 @@
+# Dual License
+
+This project is licensed under two licenses:
+
+## MIT License (Code)
+Copyright (c) 2020 Roberto Guido
+
+See LICENSES/MIT.txt for full text.
+
+## Creative Commons Attribution 3.0 Unported (Documentation/Content)
+Copyright (c) 2020 Roberto Guido
+
+See LICENSES/CC-BY-3.0.txt for full text.
+
+---
+
+## Modifications and Enhancements
+Copyright (c) 2025 Youri van den Bogert
+
+This derivative work maintains the original licenses and adds enhancements while preserving all original copyright notices and attributions.
+
+For the original work, visit: https://gitlab.com/solid-data-workers/laravel-sparql

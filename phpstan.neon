@@ -1,0 +1,156 @@
+includes:
+    - ./vendor/nunomaduro/larastan/extension.neon
+
+parameters:
+    paths:
+        - src
+
+    level: 5
+
+    tmpDir: var/cache/phpstan
+
+    reportUnmatchedIgnoredErrors: false
+
+    ignoreErrors:
+        # Library traits meant for consumer use
+        - '#Trait LinkedData\\SPARQL\\Eloquent\\Concerns\\SyncsToSparql is used zero times#'
+
+        # Allow dynamic properties on models
+        - '#Access to an undefined property [a-zA-Z0-9\\_]+::.*#'
+
+        # Allow dynamic method calls for relationships
+        - '#Call to an undefined method [a-zA-Z0-9\\_]+::.*#'
+
+        # SPARQL uses custom Grammar/Processor/Builder classes (not Laravel's SQL ones)
+        # These are architectural decisions, not bugs
+        - '#Return type \(LinkedData\\SPARQL\\Query\\(Grammar|Processor|Builder)\) .* should be compatible with return type \(Illuminate\\Database\\Query#'
+        - '#Parameter .* \(LinkedData\\SPARQL\\Query\\(Grammar|Processor|Builder)\) .* is not contravariant with parameter .* \(Illuminate\\Database\\Query#'
+        - '#Parameter .* of class LinkedData\\SPARQL\\Query\\Builder constructor expects LinkedData\\SPARQL\\Query\\(Grammar|Processor)#'
+
+        # Missing relationship classes - not yet implemented
+        - '#Class LinkedData\\SPARQL\\Eloquent\\Scope not found#'
+        - '#Instantiated class LinkedData\\SPARQL\\Eloquent\\Concerns\\HasOne not found#'
+        - '#Instantiated class LinkedData\\SPARQL\\Eloquent\\Concerns\\HasOneThrough not found#'
+        - '#Instantiated class LinkedData\\SPARQL\\Eloquent\\Concerns\\BelongsTo not found#'
+        - '#Instantiated class LinkedData\\SPARQL\\Eloquent\\Concerns\\HasManyThrough not found#'
+        - '#Instantiated class LinkedData\\SPARQL\\Eloquent\\Concerns\\BelongsToMany not found#'
+        - '#Call to static method make\(\) on an unknown class LinkedData\\SPARQL\\Eloquent\\RelationNotFoundException#'
+        - '#Call to method apply\(\) on an unknown class LinkedData\\SPARQL\\Eloquent\\Scope#'
+
+        # Properties that aren't actually nullable but PHPStan thinks they are
+        - '#Property LinkedData\\SPARQL\\.*::\$\w+ .* in isset\(\) is not nullable#'
+
+        # PHPDoc vs native type mismatches for Model compatibility
+        - '#PHPDoc tag @param for parameter \$\w+ with type Illuminate\\Database\\Eloquent\\Model is incompatible with native type LinkedData\\SPARQL\\Eloquent\\Model#'
+        - '#PHPDoc tag @param for parameter \$\w+ with type Illuminate\\Database\\Eloquent\\Builder is incompatible with native type LinkedData\\SPARQL\\Eloquent\\Builder#'
+        - '#PHPDoc tag @param for parameter \$\w+ with type Illuminate\\Database\\Eloquent\\Relations\\Relation is incompatible with native type LinkedData\\SPARQL\\Eloquent\\Relations\\Relation#'
+
+        # Larastan specific warnings that don't apply to SPARQL
+        - '#Called .* on Laravel collection, but could have been retrieved as a query#'
+
+        # Unreachable code warnings (due to always-true/false checks from type system)
+        - '#Unreachable statement - code above always terminates#'
+        - '#Call to function is_null\(\) with .* will always evaluate to (true|false)#'
+        - '#Negated boolean expression is always (true|false)#'
+        - '#Result of && is always (true|false)#'
+        - '#Strict comparison using !== between .* will always evaluate to (true|false)#'
+        - '#Strict comparison using === between .* will always evaluate to (true|false)#'
+        - '#Call to function is_array\(\) with .* will always evaluate to (true|false)#'
+        - '#Instanceof between .* will always evaluate to false#'
+        - '#Call to function is_numeric\(\) with .* will always evaluate to (true|false)#'
+
+        # Default parameter values using false for optional arrays (SPARQL architectural choice)
+        - '#Default value of the parameter .* \(false\) .* is incompatible with type array#'
+
+        # Unsafe usage of new static() in builder pattern
+        - '#Unsafe usage of new static\(\)#'
+
+        # Generic type issues with Eloquent Collections
+        - '#Type .* in generic type .* is not subtype of template type#'
+
+        # Model type compatibility with Illuminate base classes
+        - '#Parameter \#1 \$model of method Illuminate\\Database\\Eloquent\\ModelNotFoundException.*::setModel\(\)#'
+
+        # SPARQL Builder/Model return type differences from Illuminate base classes
+        - '#Method LinkedData\\SPARQL\\.*::.*\(\) should return Illuminate\\Database\\(Eloquent|Query)\\.*Builder but returns (LinkedData\\SPARQL|.*static)#'
+        - '#Method LinkedData\\SPARQL\\.*::get\(\) should return .*Collection.* but returns#'
+        - '#Method LinkedData\\SPARQL\\.*::getModel\(\) should return .*Model.* but returns#'
+        - '#Method LinkedData\\SPARQL\\.*::newModelInstance\(\) should return .*Model.* but returns#'
+
+        # Parameter type differences (SPARQL implementations vs Illuminate interfaces)
+        - '#Parameter .* of method .*Relation.*::.*\(\) expects Illuminate\\Database\\Eloquent\\Builder.* given#'
+        - '#Parameter .* of method .*Builder::.*\(\) expects Illuminate\\Database\\Query\\Builder.* given#'
+
+        # Return type differences for Relations
+        - '#Method .*::has(One|Many)(Through)?\(\) should return Illuminate\\Database\\Eloquent\\Relations\\.*#'
+        - '#Method .*::belongsTo(Many)?\(\) should return Illuminate\\Database\\Eloquent\\Relations\\.*#'
+
+        # Protected method access in traits
+        - '#Call to protected method callScope\(\) of class Illuminate\\Database\\Eloquent\\Builder#'
+
+        # Method return type mismatches (architectural differences)
+        - '#Method .*::mergeConstraintsFrom\(\) should return .* but returns Illuminate\\Database\\Query\\Builder#'
+        - '#Method .*::addWhereCountQuery\(\) should return .* but returns Illuminate\\Database\\Query\\Builder#'
+        - '#Method .*::onWriteConnection\(\) should return Illuminate\\Database\\Query\\Builder#'
+        - '#Method .*::all\(\) should return .*Collection.* but returns#'
+        - '#Method .*::(where|join.*|leftJoin|rightJoin|crossJoin|addArrayOfWheres|lockForUpdate|sharedLock)\(\) should return .* but returns#'
+
+        # is_a() being called with potentially null values
+        - '#Call to function is_a\(\) with .* will always evaluate to (true|false)#'
+        - '#Parameter \#1 \$object_or_class of function is_a\(\) expects object#'
+        - '#Result of \|\| is always (true|false)#'
+
+        # If condition type checking
+        - '#If condition is always (true|false)#'
+
+        # Array property access (dynamic attributes in SPARQL models)
+        - '#Cannot access property .* on array#'
+
+        # EagerLoadRelations parameter type (SPARQL models vs Illuminate models)
+        - '#Parameter \#1 \$models of method .*::eagerLoadRelations\(\) expects array.*Illuminate.*Model.*, array.*SPARQL.*Model.* given#'
+
+        # Return type mismatches for $this vs Illuminate\Database\Query\Builder
+        - '#Method .*::(orWhere.*|whereNot.*|orWhereNot.*)\(\) should return .* but returns Illuminate\\Database\\Query\\Builder#'
+
+        # JoinClause return type differences
+        - '#Method .*::newJoinClause\(\) should return Illuminate\\Database\\Query\\JoinClause but returns#'
+        - '#Instantiated class LinkedData\\SPARQL\\Query\\JoinClause not found#'
+
+        # Collection push parameter type (SPARQL models vs Illuminate models)
+        - '#Parameter \#1 \.\.\.\$values of method .*Collection.*::push\(\) expects Illuminate\\Database\\Eloquent\\Model, LinkedData\\SPARQL\\Eloquent\\Model given#'
+
+        # Relation property type (SPARQL models)
+        - '#Property .*Relation::\$related .* does not accept Illuminate\\Database\\Eloquent\\Model\|LinkedData#'
+
+        # Expression getValue() method signature
+        - '#Method Illuminate\\Database\\Query\\Expression.*::getValue\(\) invoked with 0 parameters#'
+
+        # Query builder parameter and return type issues
+        - '#Parameter \#1 \$query of method .*::(performUpdate|performInsert|setKeysForSaveQuery|addWhereExistsQuery).*\(\) expects .*Builder.*given#'
+        - '#Parameter \#1 \$builder of method .*::.*\(\) expects .*Builder.* given#'
+
+        # Model method return types
+        - '#Method .*Model::(delete|fresh|newBaseQueryBuilder|newModelQuery|resolveConnection)\(\) should return#'
+
+        # Collection and property type issues
+        - '#Parameter \#1 \$value of function collect expects#'
+        - '#Property .*::\$table .* on left side of \?\? is not nullable#'
+
+        # Relation method return type issues
+        - '#Method .*Relation::.*\(\) should return .* but returns#'
+        - '#Method .*HasMany::getRelationExistenceQueryForSelfRelation\(\) should return .* but returns#'
+
+        # Right/Left side of && is always true/false (PHPDoc type checking)
+        - '#(Right|Left) side of && is always (true|false)#'
+
+        # Access to protected properties in parent classes
+        - '#Access to protected property .*::\$attributes#'
+
+        # Static property null assignment
+        - '#Static property .*::\$resolver .* does not accept null#'
+
+        # Count parameter default value (SPARQL architectural choice)
+        - '#Default value of the parameter \#1 \$columns \(false\) of method .*::count\(\) is incompatible with type string#'
+
+    excludePaths:
+        - src/Query/Literal

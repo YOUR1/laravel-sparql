@@ -1,11 +1,6 @@
 <?php
 
-/*
-SPDX-FileCopyrightText: 2020, Roberto Guido
-SPDX-License-Identifier: MIT
-*/
-
-namespace SolidDataWorkers\SPARQL\Query;
+namespace LinkedData\SPARQL\Query;
 
 use Illuminate\Support\Str;
 
@@ -37,6 +32,10 @@ class Expression
 
     public static function iri($string)
     {
+        if (is_array($string)) {
+            return array_map(fn ($item) => new Expression($item, 'iri'), $string);
+        }
+
         return new Expression($string, 'iri');
     }
 
@@ -50,6 +49,11 @@ class Expression
         return new Expression($string, 'param');
     }
 
+    public static function cls($string)
+    {
+        return new Expression($string, 'class');
+    }
+
     /**
      * Create a new raw query expression.
      *
@@ -61,16 +65,31 @@ class Expression
         if (is_a($value, self::class)) {
             $this->value = $value->value;
             $this->type = $value->type;
-        }
-        else {
-            if (!$type) {
-                $test_type = \EasyRdf\Literal::getDatatypeForValue($value);
-                if ($test_type) {
-                    $value = \EasyRdf\Literal::create($value, null, $test_type);
+        } else {
+            if (! $type) {
+                // Explicitly handle numeric types
+                if (is_int($value)) {
+                    $datatype = \EasyRdf\RdfNamespace::expand('xsd:integer');
+                    $value = \EasyRdf\Literal::create($value, null, $datatype);
                     $type = 'literal';
-                }
-                else {
-                    $type = 'string';
+                } elseif (is_float($value)) {
+                    $datatype = \EasyRdf\RdfNamespace::expand('xsd:decimal');
+                    $value = \EasyRdf\Literal::create($value, null, $datatype);
+                    $type = 'literal';
+                } elseif (is_bool($value)) {
+                    $datatype = \EasyRdf\RdfNamespace::expand('xsd:boolean');
+                    $value = \EasyRdf\Literal::create($value ? 'true' : 'false', null, $datatype);
+                    $type = 'literal';
+                } else {
+                    // Try EasyRdf's auto-detection
+                    $test_type = \EasyRdf\Literal::getDatatypeForValue($value);
+                    if ($test_type) {
+                        $value = \EasyRdf\Literal::create($value, null, $test_type);
+                        $type = 'literal';
+                    } else {
+                        // Default to string for values without a detected datatype
+                        $type = 'string';
+                    }
                 }
             }
 
@@ -86,8 +105,25 @@ class Expression
      */
     public function getValue()
     {
-        switch($this->type) {
+        switch ($this->type) {
             case 'literal':
+                // Properly format the literal with datatype/language tag
+                if ($this->value instanceof \EasyRdf\Literal) {
+                    $value = addslashes($this->value->getValue());
+                    $lang = $this->value->getLang();
+                    $datatype = $this->value->getDatatype();
+
+                    if ($lang) {
+                        return sprintf('"%s"@%s', $value, $lang);
+                    } elseif ($datatype) {
+                        // EasyRdf returns datatypes as prefixed names (e.g. "xsd:decimal")
+                        // Use them directly without angle brackets for valid SPARQL
+                        return sprintf('"%s"^^%s', $value, $datatype);
+                    } else {
+                        return sprintf('"%s"', $value);
+                    }
+                }
+
                 return $this->value->getValue();
 
             case 'string':
@@ -98,24 +134,26 @@ class Expression
 
                 if (filter_var($uri, FILTER_VALIDATE_URL)) {
                     return sprintf('<%s>', $uri);
-                }
-                else {
+                } else {
                     if (Str::startsWith($this->value, '_:')) {
                         return sprintf('<%s>', substr($this->value, 2));
-                    }
-                    else {
+                    } else {
                         return sprintf('<%s>', $this->value);
                     }
                 }
 
                 break;
 
+            case 'class':
+                // Class names should be returned as prefixed names without expansion
+                return $this->value;
+
             case 'param':
             case 'raw':
                 return $this->value;
 
             default:
-                throw new \Exception("Unrecognized data type", 1);
+                throw new \Exception('Unrecognized data type', 1);
         }
     }
 

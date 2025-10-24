@@ -1,19 +1,13 @@
 <?php
 
-/*
-SPDX-FileCopyrightText: 2020, Roberto Guido
-SPDX-License-Identifier: MIT
-*/
-
-namespace SolidDataWorkers\SPARQL\Eloquent\Concerns;
+namespace LinkedData\SPARQL\Eloquent\Concerns;
 
 use Closure;
-use RuntimeException;
 use Illuminate\Support\Str;
-use SolidDataWorkers\SPARQL\Eloquent\Builder;
-use SolidDataWorkers\SPARQL\Eloquent\Relations\Relation;
-use SolidDataWorkers\SPARQL\Query\Builder as QueryBuilder;
-use SolidDataWorkers\SPARQL\Query\Expression;
+use LinkedData\SPARQL\Eloquent\Builder;
+use LinkedData\SPARQL\Eloquent\Relations\Relation;
+use LinkedData\SPARQL\Query\Builder as QueryBuilder;
+use LinkedData\SPARQL\Query\Expression;
 
 trait QueriesRelationships
 {
@@ -24,12 +18,11 @@ trait QueriesRelationships
      * @param  string  $operator
      * @param  int  $count
      * @param  string  $boolean
-     * @param  \Closure|null  $callback
      * @return \Illuminate\Database\Eloquent\Builder|static
      *
      * @throws \RuntimeException
      */
-    public function has($relation, $operator = '>=', $count = 1, $boolean = 'and', Closure $callback = null)
+    public function has($relation, $operator = '>=', $count = 1, $boolean = 'and', ?Closure $callback = null)
     {
         $param = $this->pushAttribute($relation);
 
@@ -66,10 +59,9 @@ trait QueriesRelationships
      *
      * @param  string  $relation
      * @param  string  $boolean
-     * @param  \Closure|null  $callback
      * @return \Illuminate\Database\Eloquent\Builder|static
      */
-    public function doesntHave($relation, $boolean = 'and', Closure $callback = null)
+    public function doesntHave($relation, $boolean = 'and', ?Closure $callback = null)
     {
         return $this->has($relation, '<', 1, $boolean, $callback);
     }
@@ -89,12 +81,11 @@ trait QueriesRelationships
      * Add a relationship count / exists condition to the query with where clauses.
      *
      * @param  string  $relation
-     * @param  \Closure|null  $callback
      * @param  string  $operator
      * @param  int  $count
      * @return \Illuminate\Database\Eloquent\Builder|static
      */
-    public function whereHas($relation, Closure $callback = null, $operator = '>=', $count = 1)
+    public function whereHas($relation, ?Closure $callback = null, $operator = '>=', $count = 1)
     {
         return $this->has($relation, $operator, $count, 'and', $callback);
     }
@@ -103,12 +94,11 @@ trait QueriesRelationships
      * Add a relationship count / exists condition to the query with where clauses and an "or".
      *
      * @param  string  $relation
-     * @param  \Closure  $callback
      * @param  string  $operator
      * @param  int  $count
      * @return \Illuminate\Database\Eloquent\Builder|static
      */
-    public function orWhereHas($relation, Closure $callback = null, $operator = '>=', $count = 1)
+    public function orWhereHas($relation, ?Closure $callback = null, $operator = '>=', $count = 1)
     {
         return $this->has($relation, $operator, $count, 'or', $callback);
     }
@@ -117,10 +107,9 @@ trait QueriesRelationships
      * Add a relationship count / exists condition to the query with where clauses.
      *
      * @param  string  $relation
-     * @param  \Closure|null  $callback
      * @return \Illuminate\Database\Eloquent\Builder|static
      */
-    public function whereDoesntHave($relation, Closure $callback = null)
+    public function whereDoesntHave($relation, ?Closure $callback = null)
     {
         return $this->doesntHave($relation, 'and', $callback);
     }
@@ -129,10 +118,9 @@ trait QueriesRelationships
      * Add a relationship count / exists condition to the query with where clauses and an "or".
      *
      * @param  string  $relation
-     * @param  \Closure  $callback
      * @return \Illuminate\Database\Eloquent\Builder|static
      */
-    public function orWhereDoesntHave($relation, Closure $callback = null)
+    public function orWhereDoesntHave($relation, ?Closure $callback = null)
     {
         return $this->doesntHave($relation, 'or', $callback);
     }
@@ -150,7 +138,7 @@ trait QueriesRelationships
         }
 
         if (is_null($this->query->columns)) {
-            $this->query->select([$this->query->from.'.*']);
+            $this->query->select([$this->query->from . '.*']);
         }
 
         $relations = is_array($relations) ? $relations : func_get_args();
@@ -173,7 +161,8 @@ trait QueriesRelationships
             // as a sub-select. First, we'll get the "has" query and use that to get the relation
             // count query. We will normalize the relation name then append _count as the name.
             $query = $relation->getRelationExistenceCountQuery(
-                $relation->getRelated()->newQuery(), $this
+                $relation->getRelated()->newQuery(),
+                $this
             );
 
             $query->callScope($constraints);
@@ -189,7 +178,7 @@ trait QueriesRelationships
             // Finally we will add the proper result column alias to the query and run the subselect
             // statement against the query builder. Then we will return the builder instance back
             // to the developer for further constraint chaining that needs to take place on it.
-            $column = $alias ?? Str::snake($name.'_count');
+            $column = $alias ?? Str::snake($name . '_count');
 
             $this->selectSub($query, $column);
         }
@@ -232,14 +221,14 @@ trait QueriesRelationships
         return $this->withoutGlobalScopes(
             $from->removedScopes()
         )->mergeWheres(
-            $from->getQuery()->wheres, $whereBindings
+            $from->getQuery()->wheres,
+            $whereBindings
         );
     }
 
     /**
      * Add a sub-query count clause to this query.
      *
-     * @param  \Illuminate\Database\Query\Builder  $query
      * @param  string  $operator
      * @param  int  $count
      * @param  string  $boolean
@@ -250,7 +239,7 @@ trait QueriesRelationships
         $this->query->addBinding($query->getBindings(), 'where');
 
         return $this->where(
-            new Expression('('.$query->toSql().')'),
+            new Expression('(' . $query->toSql() . ')'),
             $operator,
             is_numeric($count) ? new Expression($count) : $count,
             $boolean

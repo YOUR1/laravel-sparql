@@ -1,28 +1,24 @@
 <?php
 
-/*
-SPDX-FileCopyrightText: 2020, Roberto Guido
-SPDX-License-Identifier: MIT
-*/
-
-namespace SolidDataWorkers\SPARQL;
+namespace LinkedData\SPARQL;
 
 use Illuminate\Support\ServiceProvider;
-use SolidDataWorkers\SPARQL\Eloquent\Model;
+use LinkedData\SPARQL\Eloquent\Model;
 
 class SPARQLEndpointServiceProvider extends ServiceProvider
 {
-    public function boot()
+    public function boot(): void
     {
         Model::setConnectionResolver($this->app['db']);
         Model::setEventDispatcher($this->app['events']);
     }
 
-    public function register()
+    public function register(): void
     {
         $this->app->resolving('db', function ($db) {
             $db->extend('sparql', function ($config, $name) {
                 $config['name'] = $name;
+
                 return new Connection($config);
             });
         });

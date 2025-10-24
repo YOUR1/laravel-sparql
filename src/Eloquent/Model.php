@@ -1,48 +1,40 @@
 <?php
 
-/*
-SPDX-FileCopyrightText: 2020, Roberto Guido
-SPDX-License-Identifier: MIT
-*/
+namespace LinkedData\SPARQL\Eloquent;
 
-namespace SolidDataWorkers\SPARQL\Eloquent;
-
-use Exception;
 use ArrayAccess;
-use JsonSerializable;
-
-use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
-use Illuminate\Contracts\Support\Jsonable;
-use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Support\Traits\ForwardsCalls;
-use Illuminate\Contracts\Routing\UrlRoutable;
-use Illuminate\Contracts\Queue\QueueableEntity;
+use Exception;
 use Illuminate\Contracts\Queue\QueueableCollection;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Collection as BaseCollection;
+use Illuminate\Contracts\Queue\QueueableEntity;
+use Illuminate\Contracts\Routing\UrlRoutable;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Database\ConnectionResolverInterface as Resolver;
-
-use EasyRdf\Literal;
-
-use SolidDataWorkers\SPARQL\Query\Expression;
-use SolidDataWorkers\SPARQL\Eloquent\Concerns\HasRelationships;
-
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Concerns\GuardsAttributes;
 use Illuminate\Database\Eloquent\Concerns\HasAttributes;
 use Illuminate\Database\Eloquent\Concerns\HasEvents;
 use Illuminate\Database\Eloquent\Concerns\HasGlobalScopes;
 use Illuminate\Database\Eloquent\Concerns\HidesAttributes;
-use Illuminate\Database\Eloquent\Concerns\GuardsAttributes;
+use Illuminate\Database\Eloquent\JsonEncodingException;
+use Illuminate\Database\Eloquent\MassAssignmentException;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Collection as BaseCollection;
+use Illuminate\Support\Str;
+use Illuminate\Support\Traits\ForwardsCalls;
+use JsonSerializable;
+use LinkedData\SPARQL\Eloquent\Concerns\HasRelationships;
+use LinkedData\SPARQL\Query\Expression;
 
-abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, QueueableEntity, UrlRoutable
+abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializable, QueueableEntity, UrlRoutable
 {
-    use HasEvents,
+    use ForwardsCalls,
+        GuardsAttributes,
+        HasAttributes,
+        HasEvents,
         HasGlobalScopes,
         HasRelationships,
-        HidesAttributes,
-        GuardsAttributes,
-        ForwardsCalls,
-        HasAttributes {
+        HidesAttributes {
             setAttribute as realSetAttribute;
             getAttribute as realGetAttribute;
             setRawAttributes as realSetRawAttribute;
@@ -162,12 +154,28 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     protected static $ignoreOnTouch = [];
 
-    private $resource_descriptor = null;
+    /**
+     * The callbacks that should be run after the model is booted.
+     *
+     * @var array
+     */
+    protected static $bootedCallbacks = [];
+
+    /**
+     * Property URI mappings (optional)
+     * Maps short names to full URIs for convenience
+     *
+     * Example:
+     * protected $propertyUris = [
+     *     'name' => 'http://schema.org/name',
+     *     'email' => 'http://schema.org/email',
+     * ];
+     */
+    protected $propertyUris = [];
 
     /**
      * Create a new Eloquent model instance.
      *
-     * @param  array  $attributes
      * @return void
      */
     public function __construct(array $attributes = [])
@@ -196,6 +204,12 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             static::boot();
 
             $this->fireModelEvent('booted', false);
+
+            static::$bootedCallbacks[static::class] ??= [];
+
+            foreach (static::$bootedCallbacks[static::class] as $callback) {
+                $callback(static::class);
+            }
         }
     }
 
@@ -223,7 +237,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         static::$traitInitializers[$class] = [];
 
         foreach (class_uses_recursive($class) as $trait) {
-            $method = 'boot'.class_basename($trait);
+            $method = 'boot' . class_basename($trait);
 
             if (method_exists($class, $method) && ! in_array($method, $booted)) {
                 forward_static_call([$class, $method]);
@@ -231,7 +245,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
                 $booted[] = $method;
             }
 
-            if (method_exists($class, $method = 'initialize'.class_basename($trait))) {
+            if (method_exists($class, $method = 'initialize' . class_basename($trait))) {
                 static::$traitInitializers[$class][] = $method;
 
                 static::$traitInitializers[$class] = array_unique(
@@ -254,6 +268,19 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     }
 
     /**
+     * Register a callback that should be invoked after the model is booted.
+     *
+     * @param  \Closure  $callback
+     * @return void
+     */
+    protected static function whenBooted($callback)
+    {
+        static::$bootedCallbacks[static::class] ??= [];
+
+        static::$bootedCallbacks[static::class][] = $callback;
+    }
+
+    /**
      * Clear the list of booted models so they will be re-booted.
      *
      * @return void
@@ -263,12 +290,13 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         static::$booted = [];
 
         static::$globalScopes = [];
+
+        static::$bootedCallbacks = [];
     }
 
     /**
      * Disables relationship model touching for the current class during given callback scope.
      *
-     * @param  callable  $callback
      * @return void
      */
     public static function withoutTouching(callable $callback)
@@ -279,8 +307,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Disables relationship model touching for the given model classes during given callback scope.
      *
-     * @param  array  $models
-     * @param  callable  $callback
      * @return void
      */
     public static function withoutTouchingOn(array $models, callable $callback)
@@ -307,87 +333,36 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
 
     public function getDates()
     {
-        return $this->dates;
+        // SPARQL models don't use timestamp columns like standard Eloquent models
+        return [];
     }
 
-    public function allAttributes()
-    {
-        $types = $this->realGetAttribute('rdf:type');
-        if (isset($types)) {
-            $properties = [];
-
-            foreach($types as $type) {
-                $sub_properties = $this->getIntrospector()->getProperties($type);
-                $properties = array_merge($properties, $sub_properties);
-            }
-        }
-        else {
-            $properties = $this->getIntrospector()->getProperties($this->getTable());
-        }
-
-        return $properties;
-    }
-
+    /**
+     * Normalize attribute values for storage
+     * Simplified approach: attributes are stored as scalars or arrays, NOT Collections
+     */
     private function normalizeAttribute($attributes)
     {
-        /*
-            All attributes are normalized to be Collections, and values are
-            properly enclosed once in their form (accordly to the ontology)
-        */
-        $introspector = $this->getIntrospector();
         $normalized_attributes = [];
 
-        foreach($attributes as $attr_name => $attr_value) {
+        foreach ($attributes as $attr_name => $attr_value) {
+            // Handle id specially - always a string
             if ($attr_name == 'id') {
                 if (is_a($attr_value, BaseCollection::class)) {
                     $attr_value = (string) $attr_value->first();
-                }
-                else {
+                } else {
                     $attr_value = (string) $attr_value;
                 }
             }
-            else {
-                if (!is_a($attr_value, BaseCollection::class)) {
-                    $enclosed = [];
-                    $attr_value = array_unique(Arr::wrap($attr_value));
-
-                    foreach($attr_value as $attr_key => $value) {
-                        $original_value = $value;
-                        $value = null;
-
-                        if (is_a($value, \EasyRdf\Literal::class) || is_a($value, self::class)) {
-                            $value = $original_value;
-                        }
-                        else {
-                            $attr_meta = $introspector->propertyDatatype($attr_name);
-                            $range_type = $attr_meta->range['type'] ?? null;
-                            $range_value = $attr_meta->range['value'] ?? null;
-
-                            if ($range_type == 'uri' && $range_value && Str::startsWith($range_value, 'http://www.w3.org/2001/XMLSchema') == false) {
-                                $model = $this->getModel($attr_meta->range['value']);
-                                if ($model) {
-                                    $relation = new $model();
-                                    $relation->id = (string) $original_value;
-                                    $value = $relation;
-                                }
-                            }
-                        }
-
-                        if (is_null($value)) {
-                            $value = \EasyRdf\Literal::create($original_value);
-                        }
-
-                        if (is_numeric($attr_key)) {
-                            $enclosed[] = $value;
-                        }
-                        else {
-                            $enclosed[$attr_key] = $value;
-                        }
-                    }
-
-                    $attr_value = collect($enclosed);
-                }
+            // Handle Collections by converting to arrays (use all() to preserve objects)
+            elseif (is_a($attr_value, BaseCollection::class)) {
+                $attr_value = $attr_value->all();
             }
+            // Handle EasyRdf\Literal objects
+            elseif (is_a($attr_value, \EasyRdf\Literal::class)) {
+                $attr_value = $attr_value->getValue();
+            }
+            // Keep scalar values and arrays as-is
 
             $normalized_attributes[$attr_name] = $attr_value;
         }
@@ -395,28 +370,50 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         return $normalized_attributes;
     }
 
+    /**
+     * Set attribute value (supports $propertyUris mapping)
+     */
     public function setAttribute($key, $value)
     {
+        // Map short names to URIs if defined
+        $key = $this->propertyUris[$key] ?? $key;
+
         if ($key == 'id') {
             $this->id = (string) $value;
-        }
-        else {
+        } else {
             $normalized_attributes = $this->normalizeAttribute([$key => $value]);
-            foreach($normalized_attributes as $key => $value) {
-                $this->realSetAttribute($key, $value);
+            foreach ($normalized_attributes as $k => $v) {
+                $this->realSetAttribute($k, $v);
             }
         }
+
+        return $this;
     }
 
+    /**
+     * Get attribute value (supports $propertyUris mapping)
+     */
     public function getAttribute($key)
     {
+        // Map short names to URIs if defined
+        $key = $this->propertyUris[$key] ?? $key;
+
         if ($key == 'id') {
             return $this->id;
         }
 
+        // Check if the attribute exists in the attributes array first
+        // This prevents Laravel from treating foreign keys like 'commentable_id'
+        // as relationship access ('commentable:id')
+        if (array_key_exists($key, $this->attributes)) {
+            return $this->attributes[$key];
+        }
+
         $attr = $this->realGetAttribute($key);
 
-        if (!isset($attr)) {
+        // Only fetch missing attributes from database if the model actually exists in the database
+        // This prevents unit tests from attempting database queries for in-memory models
+        if (! isset($attr) && ! empty($this->id) && $this->exists) {
             /*
                 TODO
 
@@ -435,24 +432,113 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             }
         }
 
-        if (!isset($attr)) {
-            $attr = new Collection();
-            $this->setAttribute($key, $attr);
+        return $attr;
+    }
+
+    /**
+     * RDF-SPECIFIC: Set attribute with language tag
+     * Stores as: ['value' => 'foo', 'lang' => 'en']
+     *
+     * @param  string  $key  Attribute/property name
+     * @param  mixed  $value  The value to store
+     * @param  string|null  $lang  Optional language tag (e.g., 'en', 'fr')
+     * @return $this
+     */
+    public function setAttributeWithLang(string $key, $value, ?string $lang = null): self
+    {
+        $key = $this->propertyUris[$key] ?? $key;
+
+        if ($lang) {
+            $this->attributes[$key] = [
+                'value' => $value,
+                'lang' => $lang,
+            ];
+        } else {
+            $this->attributes[$key] = $value;
         }
 
-        return $attr;
+        return $this;
+    }
+
+    /**
+     * RDF-SPECIFIC: Add multiple values to a property
+     * For RDF properties that can have multiple values
+     *
+     * @param  string  $key  Attribute/property name
+     * @param  mixed  $value  The value to add
+     * @param  string|null  $lang  Optional language tag
+     * @param  string|null  $datatype  Optional datatype URI
+     * @return $this
+     */
+    public function addPropertyValue(string $key, $value, ?string $lang = null, ?string $datatype = null): self
+    {
+        $key = $this->propertyUris[$key] ?? $key;
+
+        $current = $this->attributes[$key] ?? [];
+
+        // Ensure it's an array
+        if (! is_array($current)) {
+            $current = [$current];
+        }
+
+        // Add new value
+        if ($lang || $datatype) {
+            $current[] = [
+                'value' => $value,
+                'lang' => $lang,
+                'datatype' => $datatype,
+            ];
+        } else {
+            $current[] = $value;
+        }
+
+        $this->attributes[$key] = $current;
+
+        return $this;
+    }
+
+    /**
+     * Get the resource URI (alias for ->id)
+     */
+    public function getUri(): ?string
+    {
+        return $this->id;
+    }
+
+    /**
+     * Set the resource URI (alias for ->id = ...)
+     *
+     * @return $this
+     */
+    public function setUri(string $uri): self
+    {
+        $this->id = $uri;
+
+        return $this;
+    }
+
+    /**
+     * Set the RDF class dynamically (for GenericResource)
+     *
+     * @return $this
+     */
+    public function setRdfClass(string $rdfClass): self
+    {
+        $this->table = $rdfClass;
+
+        return $this;
     }
 
     public function setRawAttributes(array $attributes, $sync = false)
     {
         $attributes = $this->normalizeAttribute($attributes);
+
         return $this->realSetRawAttribute($attributes, $sync);
     }
 
     /**
      * Fill the model with an array of attributes.
      *
-     * @param  array  $attributes
      * @return $this
      *
      * @throws \Illuminate\Database\Eloquent\MassAssignmentException
@@ -472,7 +558,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             } elseif ($totallyGuarded) {
                 throw new MassAssignmentException(sprintf(
                     'Add [%s] to fillable property to allow mass assignment on [%s].',
-                    $key, get_class($this)
+                    $key,
+                    get_class($this)
                 ));
             }
         }
@@ -483,7 +570,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Fill the model with an array of attributes. Force mass assignment.
      *
-     * @param  array  $attributes
      * @return $this
      */
     public function forceFill(array $attributes)
@@ -512,7 +598,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     protected function removeTableFromKey($key)
     {
-        return Str::contains($key, '.') ? last(explode('.', $key)) : $key;
+        return Str::contains($key, '.') ? Arr::last(explode('.', $key)) : $key;
     }
 
     /**
@@ -601,7 +687,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     public static function all($columns = false)
     {
         return static::query()->get(
-            !$columns || is_array($columns) ? $columns : func_get_args()
+            ! $columns || is_array($columns) ? $columns : func_get_args()
         );
     }
 
@@ -670,7 +756,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @param  string  $column
      * @param  float|int  $amount
-     * @param  array  $extra
      * @return int
      */
     protected function increment($column, $amount = 1, array $extra = [])
@@ -683,7 +768,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @param  string  $column
      * @param  float|int  $amount
-     * @param  array  $extra
      * @return int
      */
     protected function decrement($column, $amount = 1, array $extra = [])
@@ -711,7 +795,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         $this->incrementOrDecrementAttributeValue($column, $amount, $extra, $method);
 
         return $query->where(
-            $this->getKeyName(), $this->getKey()
+            $this->getKeyName(),
+            $this->getKey()
         )->{$method}($column, $amount, $extra);
     }
 
@@ -736,8 +821,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Update the model in the database.
      *
-     * @param  array  $attributes
-     * @param  array  $options
      * @return bool
      */
     public function update(array $attributes = [], array $options = [])
@@ -780,7 +863,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Save the model to the database.
      *
-     * @param  array  $options
      * @return bool
      */
     public function save(array $options = [])
@@ -827,7 +909,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Save the model to the database using transaction.
      *
-     * @param  array  $options
      * @return bool
      *
      * @throws \Throwable
@@ -842,7 +923,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Perform any actions that are necessary after the model is saved.
      *
-     * @param  array  $options
      * @return void
      */
     protected function finishSave(array $options)
@@ -854,7 +934,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Perform a model update operation.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return bool
      */
     protected function performUpdate(Builder $query)
@@ -885,12 +964,12 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Set the keys for a save update query.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \LinkedData\SPARQL\Eloquent\Builder
      */
     protected function setKeysForSaveQuery(Builder $query)
     {
         $query->setSubject($this->getSubject());
+
         return $query;
     }
 
@@ -917,7 +996,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Perform a model insert operation.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return bool
      */
     protected function performInsert(Builder $query)
@@ -930,16 +1008,30 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         // the query builder, which will give us back the final inserted ID for this
         // table from the database. Not all tables have to be incrementing though.
         $attributes = $this->getAttributes();
-        if (!isset($attributes['rdf:type'])) {
-            $attributes['rdf:type'] = collect($this->table);
+
+        // Ensure the primary key (id/URI) is included for SPARQL inserts
+        if (isset($this->{$this->primaryKey}) && ! isset($attributes[$this->primaryKey])) {
+            $attributes[$this->primaryKey] = $this->{$this->primaryKey};
+        }
+
+        if (! isset($attributes['rdf:type']) && $this->table) {
+            $attributes['rdf:type'] = $this->table;
         }
 
         $final_attributes = [];
 
-        foreach($attributes as $key => $value) {
+        foreach ($attributes as $key => $value) {
+            // Skip rdf:type - it's handled by the Grammar based on $query->from ($this->table)
+            if ($key === 'rdf:type') {
+                continue;
+            }
+
             $final_values = [];
 
-            foreach($value as $v) {
+            // Handle both scalar values and arrays (hybrid approach)
+            $values = is_array($value) ? $value : [$value];
+
+            foreach ($values as $v) {
                 if (is_a($v, self::class)) {
                     $v = Expression::iri($v->id);
                 }
@@ -967,7 +1059,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Insert the given attributes and set the ID on the model.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @param  array  $attributes
      * @return void
      */
@@ -1082,7 +1173,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Get a new query builder for the model's table.
      *
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \LinkedData\SPARQL\Eloquent\Builder
      */
     public function newQuery()
     {
@@ -1092,7 +1183,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Get a new query builder that doesn't have any global scopes or eager loading.
      *
-     * @return \Illuminate\Database\Eloquent\Builder|static
+     * @return \LinkedData\SPARQL\Eloquent\Builder|static
      */
     public function newModelQuery()
     {
@@ -1114,8 +1205,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Register the global scopes for this builder instance.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $builder
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @param  \LinkedData\SPARQL\Eloquent\Builder  $builder
+     * @return \LinkedData\SPARQL\Eloquent\Builder
      */
     public function registerGlobalScopes($builder)
     {
@@ -1129,13 +1220,13 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Get a new query builder that doesn't have any global scopes.
      *
-     * @return \Illuminate\Database\Eloquent\Builder|static
+     * @return \LinkedData\SPARQL\Eloquent\Builder|static
      */
     public function newQueryWithoutScopes()
     {
         return $this->newModelQuery()
-                    ->with($this->with)
-                    ->withCount($this->withCount);
+            ->with($this->with)
+            ->withCount($this->withCount);
     }
 
     /**
@@ -1153,7 +1244,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * Get a new query to restore one or more models by their queueable IDs.
      *
      * @param  array|int  $ids
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \LinkedData\SPARQL\Eloquent\Builder|static
      */
     public function newQueryForRestoration($ids)
     {
@@ -1165,8 +1256,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Create a new Eloquent query builder for the model.
      *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @return \Illuminate\Database\Eloquent\Builder|static
+     * @param  \LinkedData\SPARQL\Query\Builder  $query
+     * @return \LinkedData\SPARQL\Eloquent\Builder|static
      */
     public function newEloquentBuilder($query)
     {
@@ -1176,7 +1267,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Get a new query builder instance for the connection.
      *
-     * @return \Illuminate\Database\Query\Builder
+     * @return \LinkedData\SPARQL\Query\Builder
      */
     protected function newBaseQueryBuilder()
     {
@@ -1186,7 +1277,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Create a new Eloquent Collection instance.
      *
-     * @param  array  $models
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function newCollection(array $models = [])
@@ -1216,7 +1306,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     {
         $json = json_encode($this->jsonSerialize(), $options);
 
-        if (JSON_ERROR_NONE !== json_last_error()) {
+        if (json_last_error() !== JSON_ERROR_NONE) {
             throw JsonEncodingException::forModel($this, json_last_error_msg());
         }
 
@@ -1228,7 +1318,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @return array
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): mixed
     {
         return $this->toArray();
     }
@@ -1246,9 +1336,9 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         }
 
         return static::newQueryWithoutScopes()
-                        ->with(is_string($with) ? func_get_args() : $with)
-                        ->where($this->getKeyName(), $this->getKey())
-                        ->first();
+            ->with(is_string($with) ? func_get_args() : $with)
+            ->where($this->getKeyName(), $this->getKey())
+            ->first();
     }
 
     /**
@@ -1276,17 +1366,17 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Clone the model into a new, non-existing instance.
      *
-     * @param  array|null  $except
      * @return static
      */
-    public function replicate(array $except = null)
+    public function replicate(?array $except = null)
     {
         $defaults = [
             $this->getKeyName(),
         ];
 
         $attributes = Arr::except(
-            $this->attributes, $except ? array_unique(array_merge($except, $defaults)) : $defaults
+            $this->attributes,
+            $except ? array_unique(array_merge($except, $defaults)) : $defaults
         );
 
         return tap(new static, function ($instance) use ($attributes) {
@@ -1356,11 +1446,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         return $this;
     }
 
-    private function getIntrospector()
-    {
-        return $this->getConnection()->getIntrospector();
-    }
-
     /**
      * Resolve a connection instance.
      *
@@ -1385,7 +1470,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Set the connection resolver instance.
      *
-     * @param  \Illuminate\Database\ConnectionResolverInterface  $resolver
      * @return void
      */
     public static function setConnectionResolver(Resolver $resolver)
@@ -1546,13 +1630,13 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
 
             if ($relation instanceof QueueableCollection) {
                 foreach ($relation->getQueueableRelations() as $collectionValue) {
-                    $relations[] = $key.'.'.$collectionValue;
+                    $relations[] = $key . '.' . $collectionValue;
                 }
             }
 
             if ($relation instanceof QueueableEntity) {
                 foreach ($relation->getQueueableRelations() as $entityKey => $entityValue) {
-                    $relations[] = $key.'.'.$entityValue;
+                    $relations[] = $key . '.' . $entityValue;
                 }
             }
         }
@@ -1602,13 +1686,47 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     }
 
     /**
+     * Retrieve the child model for a bound value.
+     *
+     * @param  string  $childType
+     * @param  mixed  $value
+     * @param  string|null  $field
+     * @return \Illuminate\Database\Eloquent\Model|null
+     */
+    public function resolveChildRouteBinding($childType, $value, $field)
+    {
+        return $this->resolveChildRouteBindingQuery($childType, $value, $field)->first();
+    }
+
+    /**
+     * Retrieve the child model query for a bound value.
+     *
+     * @param  string  $childType
+     * @param  mixed  $value
+     * @param  string|null  $field
+     * @return \Illuminate\Database\Eloquent\Relations\Relation
+     */
+    protected function resolveChildRouteBindingQuery($childType, $value, $field)
+    {
+        $relationship = $this->{$childType}();
+
+        $field = $field ?: $relationship->getRelated()->getRouteKeyName();
+
+        if ($field === $relationship->getRelated()->getKeyName()) {
+            return $relationship->whereKey($value);
+        }
+
+        return $relationship->where($field, $value);
+    }
+
+    /**
      * Get the default foreign key name for the model.
      *
      * @return string
      */
     public function getForeignKey()
     {
-        return Str::snake(class_basename($this)).'_'.$this->getKeyName();
+        return Str::snake(class_basename($this)) . '_' . $this->getKeyName();
     }
 
     /**
@@ -1643,8 +1761,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     {
         if (filter_var($key, FILTER_VALIDATE_URL)) {
             $key = \EasyRdf\RdfNamespace::shorten($key);
-        }
-        else if (preg_match('/^[^_]*_.*$/', $key)) {
+        } elseif (preg_match('/^[^_]*_.*$/', $key)) {
             $key = preg_replace('/_/', ':', $key, 1);
         }
 
@@ -1659,7 +1776,19 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function __get($key)
     {
+        // Check if the relation is already loaded
+        if (array_key_exists($key, $this->relations)) {
+            return $this->relations[$key];
+        }
+
+        // Check if the key exists in attributes BEFORE flatKeyName conversion
+        // This prevents foreign keys like 'commentable_id' from being converted to 'commentable:id'
+        if (array_key_exists($key, $this->attributes)) {
+            return $this->getAttribute($key);
+        }
+
         $key = $this->flatKeyName($key);
+
         return $this->getAttribute($key);
     }
 
@@ -1679,9 +1808,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * Determine if the given attribute exists.
      *
      * @param  mixed  $offset
-     * @return bool
      */
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return ! is_null($this->getAttribute($offset));
     }
@@ -1690,11 +1818,11 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * Get the value for a given offset.
      *
      * @param  mixed  $offset
-     * @return mixed
      */
-    public function offsetGet($offset)
+    public function offsetGet($offset): mixed
     {
         $offset = $this->flatKeyName($offset);
+
         return $this->getAttribute($offset);
     }
 
@@ -1703,9 +1831,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @param  mixed  $offset
      * @param  mixed  $value
-     * @return void
      */
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         $offset = $this->flatKeyName($offset);
         $this->setAttribute($offset, $value);
@@ -1715,9 +1842,19 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * Unset the value for a given offset.
      *
      * @param  mixed  $offset
-     * @return void
      */
-    public function offsetUnset($offset, $sync = false)
+    public function offsetUnset($offset): void
+    {
+        unset($this->attributes[$offset], $this->relations[$offset]);
+    }
+
+    /**
+     * Unset the value for a given offset and optionally sync to original.
+     *
+     * @param  mixed  $offset
+     * @param  bool  $sync
+     */
+    public function unsetAttribute($offset, $sync = false): void
     {
         unset($this->attributes[$offset], $this->relations[$offset]);
         if ($sync) {
@@ -1760,17 +1897,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             return $this->$method(...$parameters);
         }
 
-        /*
-            This is to automatically generate relationships with other
-            Resources, accordly to the ontology
-        */
-        $properties = $this->allAttributes();
-        if (isset($properties[$method])) {
-            if ($properties[$method]->range['type'] == 'uri') {
-                return $this->hasMany($this->getIntrospector()->getModel($properties[$method]->range['value']), 'id', $method);
-            }
-        }
-
+        // No auto-discovery of relationships - use explicit relationship definitions
         return $this->forwardCallTo($this->newQuery(), $method, $parameters);
     }
 
@@ -1804,5 +1931,182 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     public function __wakeup()
     {
         $this->bootIfNotBooted();
+    }
+
+    /**
+     * Static batch insert
+     * Insert multiple models in a single SPARQL query for performance
+     *
+     * @param  array  $models  Array of Model instances to insert
+     */
+    public static function insertBatch(array $models): bool
+    {
+        if (empty($models)) {
+            return true;
+        }
+
+        // Get the connection from the first model
+        $connection = $models[0]->getConnection();
+
+        // Generate INSERT DATA query combining all models
+        $allTriples = [];
+        foreach ($models as $model) {
+            $triples = $model->generateInsertTriples();
+            $allTriples = array_merge($allTriples, $triples);
+        }
+
+        if (empty($allTriples)) {
+            return true;
+        }
+
+        // Check if there's a configured graph
+        $graph = $connection->getConfig('graph');
+
+        $sparql = 'INSERT DATA {';
+        if ($graph) {
+            $sparql .= ' GRAPH <' . $graph . '> {';
+        }
+        $sparql .= ' ' . implode(' . ', $allTriples) . ' .';
+        if ($graph) {
+            $sparql .= ' }';
+        }
+        $sparql .= ' }';
+
+        return $connection->insert($sparql);
+    }
+
+    /**
+     * Static batch delete by URIs
+     * Delete multiple resources in a single SPARQL query for performance
+     *
+     * @param  array  $uris  Array of resource URIs to delete
+     * @return int Number of URIs processed
+     */
+    public static function deleteBatch(array $uris): int
+    {
+        if (empty($uris)) {
+            return 0;
+        }
+
+        $uriList = array_map(fn ($uri) => "<{$uri}>", $uris);
+        $valuesList = implode(' ', $uriList);
+
+        $instance = new static;
+        $connection = $instance->getConnection();
+        $graph = $connection->getConfig('graph');
+
+        $sparql = '';
+        if ($graph) {
+            $sparql .= "WITH <{$graph}>\n";
+        }
+        $sparql .= "DELETE { ?s ?p ?o }\n";
+        $sparql .= "WHERE { ?s ?p ?o . VALUES ?s { {$valuesList} } }";
+
+        $connection->delete($sparql);
+
+        return count($uris);
+    }
+
+    /**
+     * Generate INSERT triples from model attributes
+     * Returns array of SPARQL triple strings
+     */
+    protected function generateInsertTriples(): array
+    {
+        $triples = [];
+
+        // Add rdf:type triple
+        if ($this->table) {
+            $triples[] = $this->formatTriple(
+                $this->id,
+                'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+                $this->table,
+                true // object is a URI
+            );
+        }
+
+        // Add property triples
+        foreach ($this->attributes as $predicate => $value) {
+            // Skip primary key
+            if ($predicate === $this->primaryKey) {
+                continue;
+            }
+
+            // Handle arrays (multi-valued properties)
+            $values = is_array($value) ? $value : [$value];
+
+            foreach ($values as $v) {
+                $triples[] = $this->formatTriple($this->id, $predicate, $v);
+            }
+        }
+
+        return $triples;
+    }
+
+    /**
+     * Format a single RDF triple for SPARQL
+     *
+     * @param  string  $subject  Subject URI
+     * @param  string  $predicate  Predicate URI
+     * @param  mixed  $object  Object value
+     * @param  bool  $objectIsUri  Whether object should be treated as URI
+     * @return string Formatted triple
+     */
+    protected function formatTriple(string $subject, string $predicate, $object, bool $objectIsUri = false): string
+    {
+        $s = "<{$subject}>";
+        $p = "<{$predicate}>";
+        $o = $this->formatObject($object, $objectIsUri);
+
+        return "{$s} {$p} {$o}";
+    }
+
+    /**
+     * Format object value for SPARQL
+     *
+     * @param  mixed  $value  The value to format
+     * @param  bool  $forceUri  Force treatment as URI
+     * @return string Formatted object
+     */
+    protected function formatObject($value, bool $forceUri = false): string
+    {
+        // Handle language-tagged values
+        if (is_array($value) && isset($value['value'])) {
+            $val = addslashes($value['value']);
+
+            if (isset($value['lang'])) {
+                return "\"{$val}\"@{$value['lang']}";
+            }
+
+            if (isset($value['datatype'])) {
+                return "\"{$val}\"^^<{$value['datatype']}>";
+            }
+
+            return "\"{$val}\"";
+        }
+
+        // URIs
+        if ($forceUri || (is_string($value) && filter_var($value, FILTER_VALIDATE_URL))) {
+            return "<{$value}>";
+        }
+
+        // Numbers
+        if (is_int($value)) {
+            return "\"{$value}\"^^<http://www.w3.org/2001/XMLSchema#integer>";
+        }
+
+        if (is_float($value)) {
+            return "\"{$value}\"^^<http://www.w3.org/2001/XMLSchema#decimal>";
+        }
+
+        // Booleans
+        if (is_bool($value)) {
+            $val = $value ? 'true' : 'false';
+
+            return "\"{$val}\"^^<http://www.w3.org/2001/XMLSchema#boolean>";
+        }
+
+        // Default: string literal
+        return '"' . addslashes($value) . '"';
     }
 }

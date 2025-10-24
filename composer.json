@@ -12,27 +12,53 @@
     ],
     "license" : "MIT",
     "require": {
-        "illuminate/support": "8.*",
-        "illuminate/container": "8.*",
-        "illuminate/database": "8.*",
-        "illuminate/events": "8.*",
+        "php": "^8.2",
+        "illuminate/support": "^12.0",
+        "illuminate/container": "^12.0",
+        "illuminate/database": "^12.0",
+        "illuminate/events": "^12.0",
         "madbob/easyrdf-on-guzzle": "0.3.0",
-        "madbob/lov-api": "0.1.0",
-        "ml/json-ld": "^1.2"
+        "ml/json-ld": "^1.2",
+        "nesbot/carbon": "^3.0"
     },
     "require-dev": {
-        "doctrine/dbal": "^2.5"
+        "doctrine/dbal": "^3.0|^4.0",
+        "phpunit/phpunit": "^11.0",
+        "orchestra/testbench": "^10.0",
+        "laravel/pint": "^1.13",
+        "phpstan/phpstan": "^2.1",
+        "nunomaduro/larastan": "^3.0"
     },
     "autoload": {
-        "psr-0": {
-            "SolidDataWorkers\\SPARQL": "src/"
+        "psr-4": {
+            "LinkedData\\SPARQL\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LinkedData\\SPARQL\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "SolidDataWorkers\\SPARQL\\SPARQLEndpointServiceProvider"
+                "LinkedData\\SPARQL\\SPARQLEndpointServiceProvider"
             ]
         }
-    }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test:coverage": "vendor/bin/phpunit --configuration phpunit.coverage.xml",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=512M",
+        "format": "vendor/bin/pint",
+        "format:test": "vendor/bin/pint --test"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
