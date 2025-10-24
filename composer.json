@@ -1,64 +1,75 @@
 {
-    "name": "solid-data-workers/laravel-sparql",
-    "description": "A SPARQL based Eloquent model and Query builder for Laravel",
-    "keywords": ["laravel","eloquent","sparql","database","model","rdf"],
-    "homepage": "https://gitlab.com/solid-data-workers/laravel-sparql",
-    "authors": [
-        {
-            "name": "Roberto Guido",
-            "homepage": "https://madbob.org",
-            "email": "bob@linux.it"
-        }
-    ],
-    "license" : "MIT",
-    "require": {
-        "php": "^8.2",
-        "illuminate/support": "^12.0",
-        "illuminate/container": "^12.0",
-        "illuminate/database": "^12.0",
-        "illuminate/events": "^12.0",
-        "madbob/easyrdf-on-guzzle": "0.3.0",
-        "ml/json-ld": "^1.2",
-        "nesbot/carbon": "^3.0"
+  "name": "your1/laravel-sparql",
+  "description": "A SPARQL based Eloquent model and Query builder for Laravel",
+  "keywords": [
+    "laravel",
+    "eloquent",
+    "sparql",
+    "database",
+    "model",
+    "rdf"
+  ],
+  "homepage": "https://github.com/YOUR1/laravel-sparql",
+  "authors": [
+    {
+      "name": "Youri van den Bogert",
+      "email": "youri@vandenbogert.eu"
     },
-    "require-dev": {
-        "doctrine/dbal": "^3.0|^4.0",
-        "phpunit/phpunit": "^11.0",
-        "orchestra/testbench": "^10.0",
-        "laravel/pint": "^1.13",
-        "phpstan/phpstan": "^2.1",
-        "nunomaduro/larastan": "^3.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "LinkedData\\SPARQL\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "LinkedData\\SPARQL\\Tests\\": "tests/"
-        }
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "LinkedData\\SPARQL\\SPARQLEndpointServiceProvider"
-            ]
-        }
-    },
-    "scripts": {
-        "test": "vendor/bin/phpunit",
-        "test:coverage": "vendor/bin/phpunit --configuration phpunit.coverage.xml",
-        "analyse": "vendor/bin/phpstan analyse --memory-limit=512M",
-        "format": "vendor/bin/pint",
-        "format:test": "vendor/bin/pint --test"
-    },
-    "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true
-        }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    {
+      "name": "Roberto Guido",
+      "homepage": "https://madbob.org",
+      "email": "bob@linux.it"
+    }
+  ],
+  "license": "MIT",
+  "require": {
+    "php": "^8.2",
+    "illuminate/support": "^12.0",
+    "illuminate/container": "^12.0",
+    "illuminate/database": "^12.0",
+    "illuminate/events": "^12.0",
+    "madbob/easyrdf-on-guzzle": "0.3.0",
+    "ml/json-ld": "^1.2",
+    "nesbot/carbon": "^3.0"
+  },
+  "require-dev": {
+    "doctrine/dbal": "^3.0|^4.0",
+    "phpunit/phpunit": "^11.0",
+    "orchestra/testbench": "^10.0",
+    "laravel/pint": "^1.13",
+    "phpstan/phpstan": "^2.1",
+    "nunomaduro/larastan": "^3.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "LinkedData\\SPARQL\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "LinkedData\\SPARQL\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "LinkedData\\SPARQL\\SPARQLEndpointServiceProvider"
+      ]
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit",
+    "test:coverage": "vendor/bin/phpunit --configuration phpunit.coverage.xml",
+    "analyse": "vendor/bin/phpstan analyse --memory-limit=512M",
+    "format": "vendor/bin/pint",
+    "format:test": "vendor/bin/pint --test"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
 }

@@ -19,7 +19,7 @@ Comprehensive guide to using Laravel SPARQL for working with RDF triple stores.
 ### Installation
 
 ```bash
-composer require solid-data-workers/laravel-sparql
+composer require your1/laravel-sparql
 ```
 
 ### Configuration
