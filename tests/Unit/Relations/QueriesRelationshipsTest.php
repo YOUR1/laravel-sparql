@@ -41,8 +41,10 @@ class QueriesRelationshipsTest extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
+        $grammar = new \LinkedData\SPARQL\Query\Grammar;
+
         $queryBuilder = $this->getMockBuilder(QueryBuilder::class)
-            ->setConstructorArgs([$connection])
+            ->setConstructorArgs([$connection, $grammar])
             ->onlyMethods(['from'])
             ->getMock();
 
@@ -187,7 +189,6 @@ class QueriesRelationshipsTest extends TestCase
      */
     public function test_with_count_adds_count_column()
     {
-        $this->markTestSkipped('Needs proper grammar setup for selectSub');
         $builder = $this->getEloquentBuilder();
         $result = $builder->withCount('posts');
 
@@ -202,7 +203,6 @@ class QueriesRelationshipsTest extends TestCase
      */
     public function test_with_count_with_array()
     {
-        $this->markTestSkipped('Needs proper grammar setup for selectSub');
         $builder = $this->getEloquentBuilder();
         $result = $builder->withCount(['posts', 'comments']);
 
@@ -217,7 +217,6 @@ class QueriesRelationshipsTest extends TestCase
      */
     public function test_with_count_with_callback()
     {
-        $this->markTestSkipped('Needs proper grammar setup for selectSub');
         $builder = $this->getEloquentBuilder();
         $result = $builder->withCount([
             'posts' => function ($query) {
@@ -236,7 +235,6 @@ class QueriesRelationshipsTest extends TestCase
      */
     public function test_with_count_with_alias()
     {
-        $this->markTestSkipped('Needs proper grammar setup for selectSub');
         $builder = $this->getEloquentBuilder();
         $result = $builder->withCount('posts as total_posts');
 

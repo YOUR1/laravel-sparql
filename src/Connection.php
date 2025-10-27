@@ -5,6 +5,10 @@ namespace LinkedData\SPARQL;
 use GuzzleHttp\Handler\CurlHandler;
 use GuzzleHttp\HandlerStack;
 use Illuminate\Database\Connection as BaseConnection;
+use LinkedData\SPARQL\TripleStore\BlazegraphAdapter;
+use LinkedData\SPARQL\TripleStore\FusekiAdapter;
+use LinkedData\SPARQL\TripleStore\GenericAdapter;
+use LinkedData\SPARQL\TripleStore\TripleStoreAdapter;
 use MadBob\EasyRDFonGuzzle\HttpClient;
 
 class Connection extends BaseConnection
@@ -24,6 +28,13 @@ class Connection extends BaseConnection
     protected $httpclient;
 
     /**
+     * The triple store adapter for implementation-specific behavior.
+     *
+     * @var TripleStoreAdapter
+     */
+    protected $adapter;
+
+    /**
      * The default graph URI for queries.
      *
      * @var string|null
@@ -36,6 +47,7 @@ class Connection extends BaseConnection
     public function __construct(array $config)
     {
         $this->config = $config;
+        $this->adapter = $this->createAdapter($config);
         $this->connection = $this->createConnection($config);
 
         $this->useDefaultPostProcessor();
@@ -92,6 +104,16 @@ class Connection extends BaseConnection
         $this->graph = $graph;
 
         return $this;
+    }
+
+    /**
+     * Get the default graph for queries.
+     *
+     * @return string|null
+     */
+    public function getGraph()
+    {
+        return $this->graph;
     }
 
     /**
@@ -401,5 +423,102 @@ class Connection extends BaseConnection
     protected function getDefaultQueryGrammar()
     {
         return new Query\Grammar;
+    }
+
+    /**
+     * Create the appropriate triple store adapter based on configuration.
+     */
+    protected function createAdapter(array $config): TripleStoreAdapter
+    {
+        $implementation = $config['implementation'] ?? 'generic';
+
+        return match (strtolower($implementation)) {
+            'fuseki' => new FusekiAdapter,
+            'blazegraph' => new BlazegraphAdapter,
+            'generic' => new GenericAdapter,
+            default => throw new \InvalidArgumentException(
+                "Unsupported triple store implementation: {$implementation}. " .
+                'Supported: fuseki, blazegraph, generic'
+            ),
+        };
+    }
+
+    /**
+     * Get the triple store adapter.
+     */
+    public function getAdapter(): TripleStoreAdapter
+    {
+        return $this->adapter;
+    }
+
+    /**
+     * Post RDF data directly to the Graph Store Protocol endpoint.
+     * This is more efficient than INSERT DATA for bulk operations.
+     *
+     * @param  string  $rdfData  RDF data in specified format
+     * @param  string  $contentType  MIME type (e.g., 'application/n-triples')
+     * @param  string|null  $graph  Optional graph URI
+     *
+     * @see https://www.w3.org/TR/sparql11-http-rdf-update/
+     */
+    public function postGraphStoreData(string $rdfData, string $contentType, ?string $graph = null): bool
+    {
+        // Use adapter to derive GSP endpoint
+        $queryEndpoint = $this->config['host'];
+        $gspEndpoint = $this->adapter->deriveGspEndpoint($queryEndpoint);
+
+        // Use adapter to build complete URL with graph parameter
+        $targetGraph = $graph ?? $this->graph;
+        $url = $this->adapter->buildGspUrl($gspEndpoint, $targetGraph);
+
+        // Use adapter-specific content type if not explicitly provided
+        if ($contentType === 'application/n-triples') {
+            $contentType = $this->adapter->getNTriplesContentType();
+        }
+
+        try {
+            \Illuminate\Support\Facades\Log::debug('GSP POST', [
+                'implementation' => $this->adapter->getName(),
+                'endpoint' => $url,
+                'contentType' => $contentType,
+                'dataSize' => strlen($rdfData),
+                'graph' => $targetGraph,
+            ]);
+
+            // Set up the HTTP client for POST request
+            $this->httpclient->setUri($url);
+            $this->httpclient->setRawData($rdfData);
+            $this->httpclient->setHeaders('Content-Type', $contentType);
+
+            // Make the request
+            $response = $this->httpclient->request('POST');
+
+            // EasyRdf Response uses getStatus() not getStatusCode()
+            $statusCode = $response->getStatus();
+            $responseBody = $response->getBody();
+
+            \Illuminate\Support\Facades\Log::debug('GSP POST Response', [
+                'implementation' => $this->adapter->getName(),
+                'status' => $statusCode,
+                'body' => substr($responseBody, 0, 500),
+            ]);
+
+            // Use adapter to determine success
+            return $this->adapter->isSuccessResponse($statusCode, $responseBody);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('GSP POST failed', [
+                'implementation' => $this->adapter->getName(),
+                'url' => $url,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            throw new \RuntimeException(
+                "Graph Store Protocol POST failed ({$this->adapter->getName()}): " .
+                $e->getMessage() . ' (URL: ' . $url . ')',
+                0,
+                $e
+            );
+        }
     }
 }

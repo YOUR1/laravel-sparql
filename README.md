@@ -16,21 +16,30 @@ Laravel SPARQL brings the power of RDF triple stores to Laravel with an Eloquent
 - **RDF Extensions** - Language tags, multi-valued properties, and URI mappings when you need them
 - **Batch Operations** - Efficient bulk insert/update/delete operations
 - **Sync Trait** - Easily sync regular Eloquent models to SPARQL endpoints
+- **Multi-Tenancy Support** - Full support for stancl/tenancy with automatic endpoint switching per tenant
 - **No Magic** - Explicit model definitions, no dynamic class generation
 - **Production Ready** - 100% test coverage, optimized for performance
 
 ## Requirements
 
-- PHP 8.0+
-- Laravel 9.0+
-- A SPARQL 1.1 endpoint (Apache Jena Fuseki, Virtuoso, Blazegraph, etc.)
+- PHP 8.2+
+- Laravel 12.0+
+- A SPARQL 1.1 compliant endpoint with **Graph Store Protocol** support
+  - ✅ Apache Jena Fuseki
+  - ✅ Blazegraph
+  - ✅ Amazon Neptune
+  - ✅ GraphDB
+  - ✅ Virtuoso
+  - ✅ Most modern SPARQL stores
+
+> **Note:** This package uses the W3C SPARQL 1.1 Graph Store HTTP Protocol for efficient bulk operations. This is a standard feature in modern SPARQL endpoints.
 
 ## Installation
 
 Install via Composer:
 
 ```bash
-composer require solid-data-workers/laravel-sparql
+composer require your1/laravel-sparql
 ```
 
 The service provider will automatically register a `sparql` database driver with Laravel's database manager.
@@ -46,6 +55,10 @@ Add to `config/database.php`:
     'sparql' => [
         'driver' => 'sparql',
         'endpoint' => env('SPARQL_ENDPOINT', 'http://localhost:3030/test/sparql'),
+
+        // IMPORTANT: Specify your triple store implementation
+        'implementation' => env('SPARQL_IMPLEMENTATION', 'fuseki'),  // fuseki|blazegraph|generic
+
         'auth' => [
             'type' => 'digest',
             'username' => env('SPARQL_USERNAME'),
@@ -59,10 +72,16 @@ Add to `config/database.php`:
 ],
 ```
 
+**Implementation Options:**
+- `fuseki` - Apache Jena Fuseki (default)
+- `blazegraph` - Blazegraph triple store
+- `generic` - W3C standard (Virtuoso, GraphDB, Stardog, Amazon Neptune, etc.)
+
 Add to `.env`:
 
 ```env
 SPARQL_ENDPOINT=http://localhost:3030/test/sparql
+SPARQL_IMPLEMENTATION=fuseki
 ```
 
 ### 2. Define a Model
@@ -113,6 +132,7 @@ $person->delete();
 For comprehensive guides and examples, see:
 
 - **[Usage Guide](docs/USAGE.md)** - Core concepts, CRUD operations, queries, RDF features, batch operations, and syncing regular Eloquent models
+- **[Multi-Tenancy Guide](docs/TENANCY.md)** - Complete guide for integrating with stancl/tenancy for multi-tenant applications
 - **[API Reference](docs/API.md)** - Complete API documentation for all classes and methods
 - **[Development Guide](docs/DEVELOPMENT.md)** - Setup, testing, and development instructions
 

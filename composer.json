@@ -7,7 +7,8 @@
     "sparql",
     "database",
     "model",
-    "rdf"
+    "rdf",
+    "multi-tenancy"
   ],
   "homepage": "https://github.com/YOUR1/laravel-sparql",
   "authors": [
@@ -40,6 +41,9 @@
     "phpstan/phpstan": "^2.1",
     "nunomaduro/larastan": "^3.0"
   },
+  "suggest": {
+    "stancl/tenancy": "Required for multi-tenancy support (^3.0 or ^4.0)"
+  },
   "autoload": {
     "psr-4": {
       "LinkedData\\SPARQL\\": "src/"
@@ -47,7 +51,8 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "LinkedData\\SPARQL\\Tests\\": "tests/"
+      "LinkedData\\SPARQL\\Tests\\": "tests/",
+      "Stancl\\Tenancy\\Contracts\\": "tests/Stubs/"
     }
   },
   "extra": {
@@ -59,10 +64,27 @@
   },
   "scripts": {
     "test": "vendor/bin/phpunit",
+    "test:all": [
+      "@test:fuseki",
+      "@test:blazegraph",
+      "@test:smoke:fuseki",
+      "@test:smoke:blazegraph"
+    ],
+    "test:unit": "vendor/bin/phpunit tests/Unit",
+    "test:feature": "vendor/bin/phpunit tests/Feature",
+    "test:smoke": "vendor/bin/phpunit tests/Smoke",
     "test:coverage": "vendor/bin/phpunit --configuration phpunit.coverage.xml",
+    "test:fuseki": "SPARQL_IMPLEMENTATION=fuseki vendor/bin/phpunit",
+    "test:blazegraph": "SPARQL_ENDPOINT=http://localhost:9999/bigdata/sparql SPARQL_UPDATE_ENDPOINT=http://localhost:9999/bigdata/sparql SPARQL_IMPLEMENTATION=blazegraph vendor/bin/phpunit",
+    "test:smoke:fuseki": "SPARQL_IMPLEMENTATION=fuseki vendor/bin/phpunit tests/Smoke",
+    "test:smoke:blazegraph": "SPARQL_ENDPOINT=http://localhost:9999/bigdata/sparql SPARQL_UPDATE_ENDPOINT=http://localhost:9999/bigdata/sparql SPARQL_IMPLEMENTATION=blazegraph vendor/bin/phpunit tests/Smoke",
+    "test:smoke:all": [
+      "@test:smoke:fuseki",
+      "@test:smoke:blazegraph"
+    ],
     "analyse": "vendor/bin/phpstan analyse --memory-limit=512M",
-    "format": "vendor/bin/pint",
-    "format:test": "vendor/bin/pint --test"
+    "format": "vendor/bin/pint src",
+    "format:test": "vendor/bin/pint src --test"
   },
   "config": {
     "sort-packages": true,

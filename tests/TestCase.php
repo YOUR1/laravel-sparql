@@ -33,6 +33,7 @@ abstract class TestCase extends BaseTestCase
             'driver' => 'sparql',
             'host' => env('SPARQL_ENDPOINT', 'http://localhost:3030/test/sparql'),
             'update_endpoint' => env('SPARQL_UPDATE_ENDPOINT', 'http://localhost:3030/test/update'),
+            'implementation' => env('SPARQL_IMPLEMENTATION', 'fuseki'), // fuseki|blazegraph|generic
             'graph' => env('SPARQL_GRAPH', 'http://example.org/test-graph'),
             'auth' => [
                 'type' => env('SPARQL_AUTH_TYPE', 'basic'),
