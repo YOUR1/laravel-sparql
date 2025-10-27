@@ -83,8 +83,8 @@
       "@test:smoke:blazegraph"
     ],
     "analyse": "vendor/bin/phpstan analyse --memory-limit=512M",
-    "format": "vendor/bin/pint",
-    "format:test": "vendor/bin/pint --test"
+    "format": "vendor/bin/pint src",
+    "format:test": "vendor/bin/pint src --test"
   },
   "config": {
     "sort-packages": true,

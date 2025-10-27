@@ -5,10 +5,10 @@ namespace LinkedData\SPARQL;
 use GuzzleHttp\Handler\CurlHandler;
 use GuzzleHttp\HandlerStack;
 use Illuminate\Database\Connection as BaseConnection;
-use LinkedData\SPARQL\TripleStore\TripleStoreAdapter;
-use LinkedData\SPARQL\TripleStore\FusekiAdapter;
 use LinkedData\SPARQL\TripleStore\BlazegraphAdapter;
+use LinkedData\SPARQL\TripleStore\FusekiAdapter;
 use LinkedData\SPARQL\TripleStore\GenericAdapter;
+use LinkedData\SPARQL\TripleStore\TripleStoreAdapter;
 use MadBob\EasyRDFonGuzzle\HttpClient;
 
 class Connection extends BaseConnection
@@ -427,29 +427,24 @@ class Connection extends BaseConnection
 
     /**
      * Create the appropriate triple store adapter based on configuration.
-     *
-     * @param  array  $config
-     * @return TripleStoreAdapter
      */
     protected function createAdapter(array $config): TripleStoreAdapter
     {
         $implementation = $config['implementation'] ?? 'generic';
 
         return match (strtolower($implementation)) {
-            'fuseki' => new FusekiAdapter(),
-            'blazegraph' => new BlazegraphAdapter(),
-            'generic' => new GenericAdapter(),
+            'fuseki' => new FusekiAdapter,
+            'blazegraph' => new BlazegraphAdapter,
+            'generic' => new GenericAdapter,
             default => throw new \InvalidArgumentException(
                 "Unsupported triple store implementation: {$implementation}. " .
-                "Supported: fuseki, blazegraph, generic"
+                'Supported: fuseki, blazegraph, generic'
             ),
         };
     }
 
     /**
      * Get the triple store adapter.
-     *
-     * @return TripleStoreAdapter
      */
     public function getAdapter(): TripleStoreAdapter
     {
@@ -463,7 +458,6 @@ class Connection extends BaseConnection
      * @param  string  $rdfData  RDF data in specified format
      * @param  string  $contentType  MIME type (e.g., 'application/n-triples')
      * @param  string|null  $graph  Optional graph URI
-     * @return bool
      *
      * @see https://www.w3.org/TR/sparql11-http-rdf-update/
      */
@@ -527,5 +521,4 @@ class Connection extends BaseConnection
             );
         }
     }
-
 }
