@@ -21,8 +21,8 @@ Laravel SPARQL brings the power of RDF triple stores to Laravel with an Eloquent
 
 ## Requirements
 
-- PHP 8.0+
-- Laravel 9.0+
+- PHP 8.2+
+- Laravel 12.0+
 - A SPARQL 1.1 compliant endpoint with **Graph Store Protocol** support
   - ✅ Apache Jena Fuseki
   - ✅ Blazegraph
@@ -38,7 +38,7 @@ Laravel SPARQL brings the power of RDF triple stores to Laravel with an Eloquent
 Install via Composer:
 
 ```bash
-composer require solid-data-workers/laravel-sparql
+composer require your1/laravel-sparql
 ```
 
 The service provider will automatically register a `sparql` database driver with Laravel's database manager.

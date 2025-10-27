@@ -1,6 +1,6 @@
 # API Reference
 
-Complete API reference for Laravel SPARQL v2.0.
+Complete API reference for Laravel SPARQL v1.0.
 
 ## Table of Contents
 
@@ -485,6 +485,16 @@ public function rdftype($table): Builder
 
 // Usage
 $people = DB::connection('sparql')->rdftype('foaf:Person')->get();
+```
+
+##### getGraph()
+Get the default graph for queries.
+
+```php
+public function getGraph(): ?string
+
+// Usage
+$graph = DB::connection('sparql')->getGraph();
 ```
 
 ## SyncsToSparql Trait

@@ -14,7 +14,7 @@ This guide covers setup, testing, and development for Laravel SPARQL contributor
 
 ## Prerequisites
 
-- PHP 8.0 or higher
+- PHP 8.2 or higher
 - Composer
 - Docker and Docker Compose (for SPARQL endpoint)
 
