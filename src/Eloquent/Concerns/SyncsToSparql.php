@@ -98,10 +98,17 @@ trait SyncsToSparql
         $resource->setConnection($this->getSparqlConnection());
 
         foreach ($this->toSparqlAttributes() as $predicate => $value) {
+            // Skip null values
+            if ($value === null) {
+                continue;
+            }
+
             if (is_array($value)) {
                 // Handle multiple values for a single property
                 foreach ($value as $v) {
-                    $resource->addPropertyValue($predicate, $v);
+                    if ($v !== null) {
+                        $resource->addPropertyValue($predicate, $v);
+                    }
                 }
             } else {
                 $resource->setAttribute($predicate, $value);

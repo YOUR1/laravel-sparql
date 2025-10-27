@@ -388,8 +388,11 @@ trait BuildsSparqlUpdates
     }
 
     /**
-     * Batch insert multiple records in a single SPARQL INSERT DATA operation.
+     * Batch insert multiple records using Graph Store Protocol.
      * This is much more efficient than inserting records one by one.
+     *
+     * Uses W3C SPARQL 1.1 Graph Store HTTP Protocol for optimal performance
+     * with large datasets.
      *
      * @param  array  $records  Array of records, each containing triples
      * @return bool
@@ -399,6 +402,8 @@ trait BuildsSparqlUpdates
      *     [['<http://example.org/book1>', 'dc:title', '"Book One"'], ['<http://example.org/book1>', 'dc:creator', '"Author 1"']],
      *     [['<http://example.org/book2>', 'dc:title', '"Book Two"'], ['<http://example.org/book2>', 'dc:creator', '"Author 2"']]
      * ])
+     *
+     * @see https://www.w3.org/TR/sparql11-http-rdf-update/
      */
     public function insertBatch(array $records)
     {
@@ -420,12 +425,36 @@ trait BuildsSparqlUpdates
             return true;
         }
 
-        $this->updateType = 'insertData';
-        $this->insertData = $allTriples;
+        // Use Graph Store Protocol for batch inserts (more efficient)
+        return $this->insertTriplesViaGsp($allTriples);
+    }
 
-        $sql = $this->grammar->compileInsertData($this);
+    /**
+     * Insert triples using Graph Store Protocol.
+     * Converts triple arrays to N-Triples format and POSTs to graph store endpoint.
+     *
+     * @param  array  $triples  Array of triples [[s, p, o], ...]
+     * @return bool
+     */
+    protected function insertTriplesViaGsp(array $triples): bool
+    {
+        // Convert triples to N-Triples format
+        $ntriplesLines = [];
+        foreach ($triples as $triple) {
+            if (is_array($triple) && count($triple) === 3) {
+                [$s, $p, $o] = $triple;
+                $ntriplesLines[] = "{$s} {$p} {$o} .";
+            }
+        }
 
-        return $this->connection->statement($sql);
+        $ntriples = implode("\n", $ntriplesLines) . "\n";
+
+        // Use Graph Store Protocol POST
+        return $this->connection->postGraphStoreData(
+            $ntriples,
+            'application/n-triples',
+            $this->graph
+        );
     }
 
     /**

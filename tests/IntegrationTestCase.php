@@ -7,8 +7,8 @@ use LinkedData\SPARQL\Connection;
 /**
  * Base test case for integration tests that interact with a real SPARQL endpoint.
  *
- * These tests require a running Fuseki instance. Start it with:
- * ./setup-fuseki.sh
+ * These tests require a running SPARQL endpoint (Fuseki, Blazegraph, etc.).
+ * Start with: docker-compose up -d
  */
 abstract class IntegrationTestCase extends TestCase
 {
@@ -22,8 +22,8 @@ abstract class IntegrationTestCase extends TestCase
 
         $this->connection = app('db')->connection('sparql');
 
-        // Ensure Fuseki is running before running integration tests
-        $this->ensureFusekiIsRunning();
+        // Ensure SPARQL endpoint is running before running integration tests
+        $this->ensureSparqlEndpointIsRunning();
 
         // Clear test graph before each test
         $this->clearTestGraph();
@@ -175,15 +175,24 @@ abstract class IntegrationTestCase extends TestCase
     }
 
     /**
-     * Skip test if Fuseki is not running.
+     * Skip test if SPARQL endpoint is not running.
+     * Subclasses can override this method to provide endpoint-specific error messages.
      */
-    protected function ensureFusekiIsRunning(): void
+    protected function ensureSparqlEndpointIsRunning(): void
     {
         try {
             $query = 'ASK { ?s ?p ?o }';
             $this->connection->select($query);
         } catch (\Exception $e) {
-            $this->markTestSkipped('Fuseki is not running. Start it with: ./setup-fuseki.sh');
+            $this->markTestSkipped('SPARQL endpoint is not running. Start it with: docker-compose up -d');
         }
+    }
+
+    /**
+     * @deprecated Use ensureSparqlEndpointIsRunning() instead
+     */
+    protected function ensureFusekiIsRunning(): void
+    {
+        $this->ensureSparqlEndpointIsRunning();
     }
 }

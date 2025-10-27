@@ -162,6 +162,15 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
     protected static $bootedCallbacks = [];
 
     /**
+     * The maximum number of triples to include in a single batch insert query.
+     * This prevents queries from becoming too large for the SPARQL endpoint.
+     * Default: 1000 triples per query.
+     *
+     * @var int
+     */
+    protected static $batchChunkSize = 1000;
+
+    /**
      * Property URI mappings (optional)
      * Maps short names to full URIs for convenience
      *
@@ -383,7 +392,7 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
         } else {
             $normalized_attributes = $this->normalizeAttribute([$key => $value]);
             foreach ($normalized_attributes as $k => $v) {
-                $this->realSetAttribute($k, $v);
+                $this->attributes[$k] = $v;
             }
         }
 
@@ -1934,10 +1943,39 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
     }
 
     /**
+     * Set the batch chunk size for batch insert operations.
+     * This controls how many triples are included in each INSERT DATA query.
+     *
+     * @param  int  $size  Maximum number of triples per query
+     * @return void
+     */
+    public static function setBatchChunkSize(int $size): void
+    {
+        static::$batchChunkSize = $size;
+    }
+
+    /**
+     * Get the current batch chunk size.
+     *
+     * @return int
+     */
+    public static function getBatchChunkSize(): int
+    {
+        return static::$batchChunkSize;
+    }
+
+    /**
      * Static batch insert
-     * Insert multiple models in a single SPARQL query for performance
+     * Insert multiple models using Graph Store Protocol for performance.
+     * Automatically chunks large batches to prevent exceeding endpoint limits.
+     *
+     * Uses W3C SPARQL 1.1 Graph Store HTTP Protocol instead of INSERT DATA
+     * for much better performance with bulk operations.
      *
      * @param  array  $models  Array of Model instances to insert
+     * @return bool
+     *
+     * @see https://www.w3.org/TR/sparql11-http-rdf-update/
      */
     public static function insertBatch(array $models): bool
     {
@@ -1948,7 +1986,7 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
         // Get the connection from the first model
         $connection = $models[0]->getConnection();
 
-        // Generate INSERT DATA query combining all models
+        // Generate triples from all models
         $allTriples = [];
         foreach ($models as $model) {
             $triples = $model->generateInsertTriples();
@@ -1962,22 +2000,53 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
         // Check if there's a configured graph
         $graph = $connection->getConfig('graph');
 
-        $sparql = 'INSERT DATA {';
-        if ($graph) {
-            $sparql .= ' GRAPH <' . $graph . '> {';
-        }
-        $sparql .= ' ' . implode(' . ', $allTriples) . ' .';
-        if ($graph) {
-            $sparql .= ' }';
-        }
-        $sparql .= ' }';
+        // Chunk the triples to prevent data size limits
+        // Still using triple count as chunking metric (simpler)
+        $chunks = array_chunk($allTriples, static::$batchChunkSize);
 
-        return $connection->insert($sparql);
+        // Execute each chunk using Graph Store Protocol
+        foreach ($chunks as $chunk) {
+            // Convert triples to N-Triples format
+            $ntriples = static::formatTriplesAsNTriples($chunk);
+
+            // POST directly to graph store endpoint
+            $result = $connection->postGraphStoreData(
+                $ntriples,
+                'application/n-triples',
+                $graph
+            );
+
+            if (! $result) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Convert an array of triple strings to N-Triples format.
+     * N-Triples is a simple, line-based RDF format.
+     *
+     * @param  array  $triples  Array of triple strings from generateInsertTriples()
+     * @return string N-Triples formatted data
+     */
+    protected static function formatTriplesAsNTriples(array $triples): string
+    {
+        // The triples from generateInsertTriples() don't include the trailing period
+        // N-Triples format requires each line to end with " ." (space-period)
+        $lines = array_map(function ($triple) {
+            return $triple . ' .';
+        }, $triples);
+
+        return implode("\n", $lines) . "\n";
     }
 
     /**
      * Static batch delete by URIs
-     * Delete multiple resources in a single SPARQL query for performance
+     * Delete multiple resources in a single SPARQL query for performance.
+     * Automatically chunks large batches into smaller queries to prevent
+     * exceeding SPARQL endpoint limits.
      *
      * @param  array  $uris  Array of resource URIs to delete
      * @return int Number of URIs processed
@@ -1988,23 +2057,31 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
             return 0;
         }
 
-        $uriList = array_map(fn ($uri) => "<{$uri}>", $uris);
-        $valuesList = implode(' ', $uriList);
-
         $instance = new static;
         $connection = $instance->getConnection();
         $graph = $connection->getConfig('graph');
 
-        $sparql = '';
-        if ($graph) {
-            $sparql .= "WITH <{$graph}>\n";
+        // Chunk the URIs to prevent query size limits
+        $chunks = array_chunk($uris, static::$batchChunkSize);
+        $totalDeleted = 0;
+
+        // Execute each chunk
+        foreach ($chunks as $chunk) {
+            $uriList = array_map(fn ($uri) => "<{$uri}>", $chunk);
+            $valuesList = implode(' ', $uriList);
+
+            $sparql = '';
+            if ($graph) {
+                $sparql .= "WITH <{$graph}>\n";
+            }
+            $sparql .= "DELETE { ?s ?p ?o }\n";
+            $sparql .= "WHERE { ?s ?p ?o . VALUES ?s { {$valuesList} } }";
+
+            $connection->delete($sparql);
+            $totalDeleted += count($chunk);
         }
-        $sparql .= "DELETE { ?s ?p ?o }\n";
-        $sparql .= "WHERE { ?s ?p ?o . VALUES ?s { {$valuesList} } }";
 
-        $connection->delete($sparql);
-
-        return count($uris);
+        return $totalDeleted;
     }
 
     /**

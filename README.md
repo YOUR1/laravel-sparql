@@ -23,7 +23,15 @@ Laravel SPARQL brings the power of RDF triple stores to Laravel with an Eloquent
 
 - PHP 8.0+
 - Laravel 9.0+
-- A SPARQL 1.1 endpoint (Apache Jena Fuseki, Virtuoso, Blazegraph, etc.)
+- A SPARQL 1.1 compliant endpoint with **Graph Store Protocol** support
+  - ✅ Apache Jena Fuseki
+  - ✅ Blazegraph
+  - ✅ Amazon Neptune
+  - ✅ GraphDB
+  - ✅ Virtuoso
+  - ✅ Most modern SPARQL stores
+
+> **Note:** This package uses the W3C SPARQL 1.1 Graph Store HTTP Protocol for efficient bulk operations. This is a standard feature in modern SPARQL endpoints.
 
 ## Installation
 
@@ -46,6 +54,10 @@ Add to `config/database.php`:
     'sparql' => [
         'driver' => 'sparql',
         'endpoint' => env('SPARQL_ENDPOINT', 'http://localhost:3030/test/sparql'),
+
+        // IMPORTANT: Specify your triple store implementation
+        'implementation' => env('SPARQL_IMPLEMENTATION', 'fuseki'),  // fuseki|blazegraph|generic
+
         'auth' => [
             'type' => 'digest',
             'username' => env('SPARQL_USERNAME'),
@@ -59,10 +71,16 @@ Add to `config/database.php`:
 ],
 ```
 
+**Implementation Options:**
+- `fuseki` - Apache Jena Fuseki (default)
+- `blazegraph` - Blazegraph triple store
+- `generic` - W3C standard (Virtuoso, GraphDB, Stardog, Amazon Neptune, etc.)
+
 Add to `.env`:
 
 ```env
 SPARQL_ENDPOINT=http://localhost:3030/test/sparql
+SPARQL_IMPLEMENTATION=fuseki
 ```
 
 ### 2. Define a Model
