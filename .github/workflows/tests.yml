@@ -22,9 +22,20 @@ jobs:
         php: ['8.2', '8.3', '8.4']
         laravel: ['12.*']
         dependency-version: [prefer-lowest, prefer-stable]
+        triple-store: ['fuseki', 'blazegraph']
         include:
           - laravel: '12.*'
             testbench: '10.*'
+          - triple-store: 'fuseki'
+            sparql-endpoint: 'http://localhost:3030/test/sparql'
+            sparql-update-endpoint: 'http://localhost:3030/test/update'
+            health-check-url: 'http://localhost:3030/$/ping'
+            docker-service: 'fuseki'
+          - triple-store: 'blazegraph'
+            sparql-endpoint: 'http://localhost:9999/bigdata/sparql'
+            sparql-update-endpoint: 'http://localhost:9999/bigdata/sparql'
+            health-check-url: 'http://localhost:9999/bigdata/'
+            docker-service: 'blazegraph'
           # Uncomment when Laravel 13 is released (Q1 2026)
           # - laravel: '13.*'
           #   testbench: '11.*'
@@ -33,7 +44,7 @@ jobs:
           # - laravel: '13.*'
           #   php: '8.2'
 
-    name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }} - ${{ matrix.dependency-version }}
+    name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }} - ${{ matrix.dependency-version }} - ${{ matrix.triple-store }}
 
     steps:
       - name: Checkout code
@@ -51,29 +62,29 @@ jobs:
           docker --version
           docker compose version
 
-      - name: Start Fuseki
+      - name: Start ${{ matrix.triple-store }}
         run: |
-          echo "🚀 Starting Apache Jena Fuseki..."
-          docker compose up -d fuseki
+          echo "🚀 Starting ${{ matrix.triple-store }}..."
+          docker compose up -d ${{ matrix.docker-service }}
 
-          echo "⏳ Waiting for Fuseki to be ready..."
-          timeout=60
+          echo "⏳ Waiting for ${{ matrix.triple-store }} to be ready..."
+          timeout=120
           elapsed=0
-          until curl -f http://localhost:3030/\$/ping 2>/dev/null || [ $elapsed -ge $timeout ]; do
-            sleep 2
-            elapsed=$((elapsed + 2))
-            echo "Waiting for Fuseki... ($elapsed/$timeout seconds)"
+          until curl -f ${{ matrix.health-check-url }} 2>/dev/null || [ $elapsed -ge $timeout ]; do
+            sleep 3
+            elapsed=$((elapsed + 3))
+            echo "Waiting for ${{ matrix.triple-store }}... ($elapsed/$timeout seconds)"
           done
 
           if [ $elapsed -ge $timeout ]; then
-            echo "❌ Fuseki failed to start within $timeout seconds"
-            docker compose logs fuseki
+            echo "❌ ${{ matrix.triple-store }} failed to start within $timeout seconds"
+            docker compose logs ${{ matrix.docker-service }}
             exit 1
           fi
 
-          echo "✅ Fuseki is ready!"
+          echo "✅ ${{ matrix.triple-store }} is ready!"
           echo "📊 Testing connection to SPARQL endpoint..."
-          curl -f http://localhost:3030/\$/ping || (docker compose logs fuseki && exit 1)
+          curl -f ${{ matrix.health-check-url }} || (docker compose logs ${{ matrix.docker-service }} && exit 1)
 
       - name: Setup problem matchers
         run: |
@@ -89,18 +100,28 @@ jobs:
         run: composer show -D
 
       - name: Execute tests
-        run: composer test
+        run: composer test:${{ matrix.triple-store }}
         env:
-          SPARQL_ENDPOINT: http://localhost:3030/test/sparql
-          SPARQL_UPDATE_ENDPOINT: http://localhost:3030/test/update
+          SPARQL_ENDPOINT: ${{ matrix.sparql-endpoint }}
+          SPARQL_UPDATE_ENDPOINT: ${{ matrix.sparql-update-endpoint }}
+          SPARQL_IMPLEMENTATION: ${{ matrix.triple-store }}
           SPARQL_USERNAME: admin
           SPARQL_PASSWORD: admin
 
-      - name: Show Fuseki logs on failure
-        if: failure()
-        run: docker compose logs fuseki
+      - name: Execute smoke tests
+        run: composer test:smoke:${{ matrix.triple-store }}
+        env:
+          SPARQL_ENDPOINT: ${{ matrix.sparql-endpoint }}
+          SPARQL_UPDATE_ENDPOINT: ${{ matrix.sparql-update-endpoint }}
+          SPARQL_IMPLEMENTATION: ${{ matrix.triple-store }}
+          SPARQL_USERNAME: admin
+          SPARQL_PASSWORD: admin
 
-      - name: Stop Fuseki
+      - name: Show ${{ matrix.triple-store }} logs on failure
+        if: failure()
+        run: docker compose logs ${{ matrix.docker-service }}
+
+      - name: Stop ${{ matrix.triple-store }}
         if: always()
         run: docker compose down -v
 

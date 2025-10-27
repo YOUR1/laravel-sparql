@@ -66,14 +66,92 @@ composer test
 Run specific test suites:
 
 ```bash
-# Unit tests only
-./vendor/bin/phpunit tests/Unit
+# Unit tests only (fast, no SPARQL endpoint required)
+composer test:unit
 
-# Feature tests only
-./vendor/bin/phpunit tests/Feature
+# Feature tests only (full integration suite)
+composer test:feature
+
+# Smoke tests only (critical functionality validation)
+composer test:smoke
 
 # With coverage report
-composer test -- --coverage-html coverage/
+composer test:coverage
+```
+
+### Testing Different Triple Store Implementations
+
+The package supports multiple SPARQL implementations (Fuseki, Blazegraph, Virtuoso, GraphDB, etc.) through adapters. Each implementation has slightly different conventions for Graph Store Protocol.
+
+#### Test Strategy
+
+**Unit Tests** (tests/Unit/TripleStore/) - Fast, no dependencies
+- Tests adapter-specific logic (endpoint derivation, URL building, response parsing)
+- Run automatically with `composer test:unit`
+- Always run these first - they catch 90% of adapter issues
+
+**Integration Tests** (tests/Feature/) - Full test suite against ONE implementation
+- Complete end-to-end testing (441 tests)
+- Default: Runs against Fuseki at http://localhost:3030
+- Takes ~1-2 seconds to complete
+
+**Smoke Tests** (tests/Smoke/) - Critical functionality across ALL implementations
+- ~18 essential tests covering CRUD, batch operations, and relationships
+- Quick validation (completes in <1 second per implementation)
+- Ensures basic compatibility with all triple stores
+
+#### Running Tests Against Specific Implementations
+
+**Fuseki** (default):
+```bash
+composer test:fuseki
+# or
+composer test:smoke:fuseki
+```
+
+**Blazegraph**:
+```bash
+# Make sure Blazegraph is running (port 9999)
+docker-compose up -d blazegraph
+
+# Run full suite
+composer test:blazegraph
+
+# Or just smoke tests
+composer test:smoke:blazegraph
+```
+
+**All Implementations** (smoke tests only):
+```bash
+composer test:smoke:all
+```
+
+#### Setting Up Blazegraph
+
+The docker-compose.yml includes both Fuseki and Blazegraph:
+
+```bash
+# Start both servers
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View Blazegraph UI
+# http://localhost:9999/bigdata/
+```
+
+#### Manual Testing Against Other Implementations
+
+For Virtuoso, GraphDB, Stardog, or Amazon Neptune:
+
+```bash
+# Set environment variables
+export SPARQL_ENDPOINT=http://your-endpoint:port/sparql
+export SPARQL_IMPLEMENTATION=generic
+
+# Run smoke tests
+composer test:smoke
 ```
 
 ### Specific Test
@@ -242,14 +320,34 @@ When fixing bugs:
 ```
 laravel-sparql/
 ├── src/                      # Source code
-│   └── Eloquent/
-│       ├── Model.php         # Base SPARQL model
-│       ├── Builder.php       # Query builder
-│       ├── Connection.php    # SPARQL connection
-│       └── Grammar.php       # SPARQL grammar
+│   ├── Eloquent/
+│   │   ├── Model.php         # Base SPARQL model
+│   │   ├── Builder.php       # Query builder
+│   │   └── ...
+│   ├── Query/
+│   │   ├── Builder.php       # Query builder
+│   │   ├── Grammar.php       # SPARQL grammar
+│   │   └── ...
+│   ├── TripleStore/          # Triple store adapters
+│   │   ├── FusekiAdapter.php
+│   │   ├── BlazegraphAdapter.php
+│   │   └── GenericAdapter.php
+│   └── Connection.php        # SPARQL connection
 ├── tests/                    # Test suite
-│   ├── Unit/                 # Unit tests
-│   └── Feature/              # Feature tests
+│   ├── Unit/                 # Unit tests (fast, no dependencies)
+│   │   ├── TripleStore/      # Adapter-specific tests
+│   │   │   ├── FusekiAdapterTest.php      (19 tests)
+│   │   │   ├── BlazegraphAdapterTest.php  (22 tests)
+│   │   │   └── GenericAdapterTest.php     (23 tests)
+│   │   └── ...               # Model, Builder, Grammar tests
+│   ├── Feature/              # Integration tests (requires SPARQL endpoint)
+│   │   └── ...               # Full end-to-end tests (441 tests)
+│   ├── Smoke/                # Critical functionality tests
+│   │   ├── BasicCrudTest.php         (7 tests)
+│   │   ├── BatchOperationsTest.php   (5 tests)
+│   │   └── RelationshipsTest.php     (6 tests)
+│   ├── IntegrationTestCase.php
+│   └── TestCase.php
 ├── docs/                     # Documentation
 │   ├── USAGE.md             # Usage guide
 │   ├── API.md               # API reference
@@ -258,6 +356,26 @@ laravel-sparql/
 ├── phpstan.neon             # PHPStan configuration
 └── pint.json                # Laravel Pint configuration
 ```
+
+### Test Organization
+
+**Unit Tests** (`tests/Unit/`)
+- Fast execution, no external dependencies
+- Mock SPARQL connections where needed
+- Test individual components in isolation
+- ~60 tests covering models, builders, grammars, adapters
+
+**Feature Tests** (`tests/Feature/`)
+- Full integration testing with real SPARQL endpoint
+- Tests complete workflows end-to-end
+- Requires Fuseki running on localhost:3030
+- ~441 tests covering all package functionality
+
+**Smoke Tests** (`tests/Smoke/`)
+- Essential functionality validation
+- Quick checks across different implementations
+- ~18 tests covering CRUD, batches, relationships
+- Designed to run against any SPARQL implementation
 
 ## Troubleshooting
 

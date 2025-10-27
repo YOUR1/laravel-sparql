@@ -1997,8 +1997,9 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
             return true;
         }
 
-        // Check if there's a configured graph
-        $graph = $connection->getConfig('graph');
+        // The connection's graph property will be used by postGraphStoreData
+        // No need to pass it explicitly - the Connection handles the fallback
+        $graph = null;
 
         // Chunk the triples to prevent data size limits
         // Still using triple count as chunking metric (simpler)
@@ -2059,7 +2060,7 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
 
         $instance = new static;
         $connection = $instance->getConnection();
-        $graph = $connection->getConfig('graph');
+        $graph = $connection->getGraph();
 
         // Chunk the URIs to prevent query size limits
         $chunks = array_chunk($uris, static::$batchChunkSize);

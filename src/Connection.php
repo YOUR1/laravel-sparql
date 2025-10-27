@@ -107,6 +107,16 @@ class Connection extends BaseConnection
     }
 
     /**
+     * Get the default graph for queries.
+     *
+     * @return string|null
+     */
+    public function getGraph()
+    {
+        return $this->graph;
+    }
+
+    /**
      * Bind values to query placeholders.
      * Converts ? placeholders to actual values for SPARQL execution.
      *
