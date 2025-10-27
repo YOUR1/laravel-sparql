@@ -16,6 +16,7 @@ Laravel SPARQL brings the power of RDF triple stores to Laravel with an Eloquent
 - **RDF Extensions** - Language tags, multi-valued properties, and URI mappings when you need them
 - **Batch Operations** - Efficient bulk insert/update/delete operations
 - **Sync Trait** - Easily sync regular Eloquent models to SPARQL endpoints
+- **Multi-Tenancy Support** - Full support for stancl/tenancy with automatic endpoint switching per tenant
 - **No Magic** - Explicit model definitions, no dynamic class generation
 - **Production Ready** - 100% test coverage, optimized for performance
 
@@ -131,6 +132,7 @@ $person->delete();
 For comprehensive guides and examples, see:
 
 - **[Usage Guide](docs/USAGE.md)** - Core concepts, CRUD operations, queries, RDF features, batch operations, and syncing regular Eloquent models
+- **[Multi-Tenancy Guide](docs/TENANCY.md)** - Complete guide for integrating with stancl/tenancy for multi-tenant applications
 - **[API Reference](docs/API.md)** - Complete API documentation for all classes and methods
 - **[Development Guide](docs/DEVELOPMENT.md)** - Setup, testing, and development instructions
 

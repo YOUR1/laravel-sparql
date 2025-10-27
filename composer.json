@@ -7,7 +7,8 @@
     "sparql",
     "database",
     "model",
-    "rdf"
+    "rdf",
+    "multi-tenancy"
   ],
   "homepage": "https://github.com/YOUR1/laravel-sparql",
   "authors": [
@@ -40,6 +41,9 @@
     "phpstan/phpstan": "^2.1",
     "nunomaduro/larastan": "^3.0"
   },
+  "suggest": {
+    "stancl/tenancy": "Required for multi-tenancy support (^3.0 or ^4.0)"
+  },
   "autoload": {
     "psr-4": {
       "LinkedData\\SPARQL\\": "src/"
@@ -47,7 +51,8 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "LinkedData\\SPARQL\\Tests\\": "tests/"
+      "LinkedData\\SPARQL\\Tests\\": "tests/",
+      "Stancl\\Tenancy\\Contracts\\": "tests/Stubs/"
     }
   },
   "extra": {
