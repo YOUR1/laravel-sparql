@@ -27,7 +27,7 @@ interface TripleStoreAdapter
      * - Generic: http://example.com/sparql -> http://example.com/data
      *
      * @param  string  $queryEndpoint  The SPARQL query endpoint URL
-     * @return string  The GSP endpoint URL
+     * @return string The GSP endpoint URL
      */
     public function deriveGspEndpoint(string $queryEndpoint): string;
 
@@ -41,7 +41,7 @@ interface TripleStoreAdapter
      *
      * @param  string  $gspEndpoint  The base GSP endpoint
      * @param  string|null  $graph  Optional named graph URI
-     * @return string  Complete URL with query parameters
+     * @return string Complete URL with query parameters
      */
     public function buildGspUrl(string $gspEndpoint, ?string $graph): string;
 
@@ -51,7 +51,7 @@ interface TripleStoreAdapter
      * Most implementations accept 'application/n-triples', but some
      * may prefer 'text/plain' or require charset specification.
      *
-     * @return string  MIME type for N-Triples
+     * @return string MIME type for N-Triples
      */
     public function getNTriplesContentType(): string;
 
@@ -60,7 +60,7 @@ interface TripleStoreAdapter
      *
      * @param  int  $statusCode  HTTP status code
      * @param  string  $responseBody  Response body
-     * @return bool  True if the operation succeeded
+     * @return bool True if the operation succeeded
      */
     public function isSuccessResponse(int $statusCode, string $responseBody): bool;
 
@@ -70,7 +70,7 @@ interface TripleStoreAdapter
      * Returns SPARQL query fragments that can optimize queries for
      * this specific triple store (e.g., Virtuoso query hints).
      *
-     * @return array<string, string>  Key-value pairs of optimization hints
+     * @return array<string, string> Key-value pairs of optimization hints
      */
     public function getQueryHints(): array;
 }

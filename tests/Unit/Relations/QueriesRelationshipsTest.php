@@ -41,7 +41,7 @@ class QueriesRelationshipsTest extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
-        $grammar = new \LinkedData\SPARQL\Query\Grammar();
+        $grammar = new \LinkedData\SPARQL\Query\Grammar;
 
         $queryBuilder = $this->getMockBuilder(QueryBuilder::class)
             ->setConstructorArgs([$connection, $grammar])

@@ -2,10 +2,10 @@
 
 namespace LinkedData\SPARQL\Tenancy;
 
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Stancl\Tenancy\Contracts\TenancyBootstrapper;
 use Stancl\Tenancy\Contracts\Tenant;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Config;
 
 /**
  * SPARQL Tenancy Bootstrapper
@@ -53,15 +53,11 @@ class SPARQLTenancyBootstrapper implements TenancyBootstrapper
 
     /**
      * Connection name to make tenant-aware.
-     *
-     * @var string
      */
     private string $connectionName;
 
     /**
      * Whether the connection was purged during bootstrap.
-     *
-     * @var bool
      */
     private bool $connectionWasPurged = false;
 
@@ -72,9 +68,6 @@ class SPARQLTenancyBootstrapper implements TenancyBootstrapper
 
     /**
      * Bootstrap tenancy by switching the SPARQL connection to the tenant's endpoint.
-     *
-     * @param Tenant $tenant
-     * @return void
      */
     public function bootstrap(Tenant $tenant): void
     {
@@ -112,8 +105,6 @@ class SPARQLTenancyBootstrapper implements TenancyBootstrapper
 
     /**
      * Revert the SPARQL connection to the original configuration.
-     *
-     * @return void
      */
     public function revert(): void
     {
@@ -160,7 +151,6 @@ class SPARQLTenancyBootstrapper implements TenancyBootstrapper
      * - Each tenant uses their own SPARQL endpoint
      * - Useful for completely separate triple stores
      *
-     * @param Tenant $tenant
      * @return array<string, mixed>
      */
     protected function getTenantSparqlConfig(Tenant $tenant): array

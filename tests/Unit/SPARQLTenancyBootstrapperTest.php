@@ -2,11 +2,10 @@
 
 namespace LinkedData\SPARQL\Tests\Unit;
 
-use LinkedData\SPARQL\Tenancy\SPARQLTenancyBootstrapper;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
-use Orchestra\Testbench\TestCase;
+use LinkedData\SPARQL\Tenancy\SPARQLTenancyBootstrapper;
 use Mockery;
+use Orchestra\Testbench\TestCase;
 
 /**
  * Tests for SPARQLTenancyBootstrapper
@@ -42,7 +41,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_graph_based_tenancy_switches_only_graph()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         $tenant = $this->createMockTenant([
             'sparql_graph' => 'http://tenant1.example.com/graph',
@@ -71,7 +70,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_endpoint_based_tenancy_switches_endpoint_and_graph()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         $tenant = $this->createMockTenant([
             'sparql_endpoint' => 'http://tenant1.example.com:3030/tenant1/sparql',
@@ -102,7 +101,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_bootstrap_with_authentication()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         $tenant = $this->createMockTenant([
             'sparql_graph' => 'http://secure.example.com/graph',
@@ -127,7 +126,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_bootstrap_with_custom_namespaces_and_endpoint()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         $tenant = $this->createMockTenant([
             'sparql_graph' => 'http://tenant.example.com/graph',
@@ -150,7 +149,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_bootstrap_with_separate_update_endpoint()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         $tenant = $this->createMockTenant([
             'sparql_graph' => 'http://tenant.example.com/graph',
@@ -170,7 +169,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_bootstrap_does_nothing_when_no_graph_configured()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         $tenant = $this->createMockTenant([
             // No sparql_graph - required for tenant isolation
@@ -190,7 +189,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_revert_restores_original_configuration()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         $originalConfig = config('database.connections.sparql');
 
@@ -215,7 +214,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_multiple_bootstrap_revert_cycles_with_graph_based_tenancy()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         $originalConfig = config('database.connections.sparql');
 
@@ -244,7 +243,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_multiple_bootstrap_revert_cycles_with_endpoint_based_tenancy()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         $originalConfig = config('database.connections.sparql');
 
@@ -275,7 +274,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_graph_based_tenancy_preserves_namespaces_from_central_config()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         // Add namespaces to central config
         Config::set('database.connections.sparql.namespaces', [
@@ -299,7 +298,7 @@ class SPARQLTenancyBootstrapperTest extends TestCase
 
     public function test_tenant_can_override_namespaces()
     {
-        $bootstrapper = new SPARQLTenancyBootstrapper();
+        $bootstrapper = new SPARQLTenancyBootstrapper;
 
         $tenant = $this->createMockTenant([
             'sparql_graph' => 'http://tenant1.example.com/graph',
@@ -320,7 +319,6 @@ class SPARQLTenancyBootstrapperTest extends TestCase
     /**
      * Create a mock tenant object with the given attributes.
      *
-     * @param array $attributes
      * @return \Mockery\MockInterface
      */
     protected function createMockTenant(array $attributes = [])

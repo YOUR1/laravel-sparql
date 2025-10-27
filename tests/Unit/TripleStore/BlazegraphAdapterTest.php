@@ -17,7 +17,7 @@ class BlazegraphAdapterTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->adapter = new BlazegraphAdapter();
+        $this->adapter = new BlazegraphAdapter;
     }
 
     /** @test */

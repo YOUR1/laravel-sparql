@@ -1947,7 +1947,6 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
      * This controls how many triples are included in each INSERT DATA query.
      *
      * @param  int  $size  Maximum number of triples per query
-     * @return void
      */
     public static function setBatchChunkSize(int $size): void
     {
@@ -1956,8 +1955,6 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
 
     /**
      * Get the current batch chunk size.
-     *
-     * @return int
      */
     public static function getBatchChunkSize(): int
     {
@@ -1973,7 +1970,6 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
      * for much better performance with bulk operations.
      *
      * @param  array  $models  Array of Model instances to insert
-     * @return bool
      *
      * @see https://www.w3.org/TR/sparql11-http-rdf-update/
      */

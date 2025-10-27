@@ -31,9 +31,6 @@ abstract class AbstractAdapter implements TripleStoreAdapter
      * Extract the dataset name from a SPARQL endpoint URL.
      *
      * Example: http://localhost:3030/test/sparql -> test
-     *
-     * @param  string  $endpoint
-     * @return string|null
      */
     protected function extractDatasetName(string $endpoint): ?string
     {
@@ -49,9 +46,6 @@ abstract class AbstractAdapter implements TripleStoreAdapter
      * Get the base URL without path segments.
      *
      * Example: http://localhost:3030/test/sparql -> http://localhost:3030
-     *
-     * @param  string  $endpoint
-     * @return string
      */
     protected function getBaseUrl(string $endpoint): string
     {
@@ -67,9 +61,6 @@ abstract class AbstractAdapter implements TripleStoreAdapter
      * Remove trailing SPARQL service names from path.
      *
      * Removes common endpoint names: /sparql, /update, /query, /data
-     *
-     * @param  string  $endpoint
-     * @return string
      */
     protected function removeServiceSuffix(string $endpoint): string
     {

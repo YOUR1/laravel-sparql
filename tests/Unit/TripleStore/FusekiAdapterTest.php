@@ -17,7 +17,7 @@ class FusekiAdapterTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->adapter = new FusekiAdapter();
+        $this->adapter = new FusekiAdapter;
     }
 
     /** @test */

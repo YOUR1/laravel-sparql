@@ -18,7 +18,7 @@ class GenericAdapterTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->adapter = new GenericAdapter();
+        $this->adapter = new GenericAdapter;
     }
 
     /** @test */

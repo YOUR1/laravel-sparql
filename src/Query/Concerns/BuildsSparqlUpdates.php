@@ -434,7 +434,6 @@ trait BuildsSparqlUpdates
      * Converts triple arrays to N-Triples format and POSTs to graph store endpoint.
      *
      * @param  array  $triples  Array of triples [[s, p, o], ...]
-     * @return bool
      */
     protected function insertTriplesViaGsp(array $triples): bool
     {

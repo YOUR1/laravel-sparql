@@ -65,11 +65,11 @@ class RelationshipsTest extends IntegrationTestCase
         $this->assertGreaterThanOrEqual(2, count($rows));
 
         // Find Bob (no email)
-        $bob = array_filter($rows, fn($row) => (string) $row->name === 'Bob');
+        $bob = array_filter($rows, fn ($row) => (string) $row->name === 'Bob');
         $this->assertNotEmpty($bob);
 
         // Find Carol (has email)
-        $carol = array_filter($rows, fn($row) => (string) $row->name === 'Carol');
+        $carol = array_filter($rows, fn ($row) => (string) $row->name === 'Carol');
         $this->assertNotEmpty($carol);
     }
 
@@ -128,7 +128,7 @@ class RelationshipsTest extends IntegrationTestCase
         $result = $this->connection->select($query);
 
         $rows = iterator_to_array($result);
-        $eve = array_filter($rows, fn($row) => (string) $row->authorName === 'Eve');
+        $eve = array_filter($rows, fn ($row) => (string) $row->authorName === 'Eve');
         $this->assertNotEmpty($eve);
 
         $eveRow = reset($eve);
