@@ -80,7 +80,10 @@ trait BuildsWhereClauses
                 'boolean' => $boolean,
             ];
 
-            $this->addBinding($value, 'where');
+            // Don't add Expression objects to bindings - they're already inlined in the query
+            if (! $value instanceof Expression) {
+                $this->addBinding($value, 'where');
+            }
 
             return $this;
         }
@@ -98,7 +101,10 @@ trait BuildsWhereClauses
             'boolean'
         );
 
-        $this->addBinding($value, 'where');
+        // Don't add Expression objects to bindings - they're already inlined in the query
+        if (! $value instanceof Expression) {
+            $this->addBinding($value, 'where');
+        }
 
         return $this;
     }

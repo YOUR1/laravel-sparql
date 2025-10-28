@@ -145,6 +145,30 @@ class GrammarTest extends TestCase
         $this->assertStringContainsString('where', strtolower($sql));
     }
 
+    public function test_expression_iri_not_added_to_bindings(): void
+    {
+        $connection = $this->app['db']->connection('sparql');
+        $query = new Builder($connection, $this->grammar, $connection->getPostProcessor());
+
+        $schemeUri = 'http://example.org/scheme/123';
+        $query->from('http://www.w3.org/2004/02/skos/core#Concept')
+            ->where('http://www.w3.org/2004/02/skos/core#inScheme', \LinkedData\SPARQL\Query\Expression::iri($schemeUri));
+
+        $sql = $query->toSparql();
+        $bindings = $query->getBindings();
+
+        // Expression values should be inlined in the query, not added to bindings
+        $this->assertEmpty($bindings, 'Expression objects should not be added to bindings array');
+
+        // The IRI should be directly in the SPARQL query
+        $this->assertStringContainsString("<{$schemeUri}>", $sql);
+
+        // The query should NOT have placeholder '?' for the Expression value
+        // Count '?' that are NOT part of SPARQL variables (like ?subject)
+        preg_match_all('/ \? (?![a-zA-Z_])/', $sql, $matches);
+        $this->assertCount(0, $matches[0], 'Should not have placeholder ? for Expression values');
+    }
+
     public function test_construct_query_with_array_template(): void
     {
         $connection = $this->app['db']->connection('sparql');
