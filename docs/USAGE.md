@@ -348,6 +348,32 @@ $totalArea = Place::sum('area');
 $exists = Person::where('email', 'john@example.com')->exists();
 ```
 
+#### Using Expression::iri() with Aggregates
+
+When using IRIs in WHERE clauses with aggregates, use `Expression::iri()` to ensure proper formatting:
+
+```php
+use LinkedData\SPARQL\Query\Expression;
+
+// Count concepts in a specific scheme
+$count = DB::connection('sparql')
+    ->graph('')
+    ->table('http://www.w3.org/2004/02/skos/core#Concept')
+    ->where('http://www.w3.org/2004/02/skos/core#inScheme',
+            Expression::iri('http://example.com/scheme/1'))
+    ->count();
+
+// With Eloquent models
+$count = SKOSConcept::where('inScheme', Expression::iri($schemeUri))->count();
+
+// Aggregates with multiple IRI conditions
+$avgAge = Person::where('type', Expression::iri('http://schema.org/Person'))
+    ->where('worksFor', Expression::iri('http://example.com/org/1'))
+    ->avg('age');
+```
+
+**Note**: `Expression::iri()` ensures that IRI values are properly formatted in SPARQL queries. Without it, string values will be treated as literals rather than IRIs.
+
 ### Select Specific Properties
 
 ```php
@@ -783,21 +809,38 @@ See [Blazegraph Configuration Options](https://github.com/blazegraph/database/wi
 #### Query Builder with Namespaces
 
 ```php
+use LinkedData\SPARQL\Query\Expression;
+
 // Fluent API - set namespace on connection
 $count = DB::connection('sparql')
     ->namespace('tenant_X_ds_Y')
     ->table('http://www.w3.org/2004/02/skos/core#Concept')
-    ->where('http://www.w3.org/2004/02/skos/core#inScheme', $schemeUri)
+    ->where('http://www.w3.org/2004/02/skos/core#inScheme',
+            Expression::iri($schemeUri))
     ->count();
 
 // Chain with other query methods
 $concepts = DB::connection('sparql')
     ->namespace('tenant_X_ds_Y')
     ->table('http://www.w3.org/2004/02/skos/core#Concept')
-    ->where('http://www.w3.org/2004/02/skos/core#inScheme', $schemeUri)
+    ->where('http://www.w3.org/2004/02/skos/core#inScheme',
+            Expression::iri($schemeUri))
     ->limit(100)
     ->get();
+
+// Complex queries with multiple IRI conditions
+$count = DB::connection('sparql')
+    ->graph('')  // Empty graph for Blazegraph namespace queries
+    ->namespace('tenant_begrippen_ds_hunze-en-aas')
+    ->table('http://www.w3.org/2004/02/skos/core#Concept')
+    ->where('http://www.w3.org/2004/02/skos/core#inScheme',
+            Expression::iri('http://example.com/scheme/1'))
+    ->where('http://www.w3.org/2004/02/skos/core#broader',
+            Expression::iri('http://example.com/concept/parent'))
+    ->count();
 ```
+
+**Important**: When using IRI values in WHERE clauses, always wrap them with `Expression::iri()` to ensure they are properly formatted as IRIs rather than string literals in the generated SPARQL query.
 
 #### Scoped Namespace Queries
 

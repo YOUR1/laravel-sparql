@@ -524,14 +524,14 @@ class Grammar extends BaseGrammar
                 break;
         }
 
-        return $query->unique_subject . ' ' . $where['column'] . ' ' . $value . $this->compileFilters($query, $where);
+        return $query->unique_subject . ' ' . $this->wrapUri($where['column']) . ' ' . $value . $this->compileFilters($query, $where);
     }
 
     protected function whereReversed(Builder $query, $where)
     {
         $value = $this->parameter($where['value']);
 
-        return $value . ' ' . $where['column'] . ' ' . $query->unique_subject . $this->compileFilters($query, $where);
+        return $value . ' ' . $this->wrapUri($where['column']) . ' ' . $query->unique_subject . $this->compileFilters($query, $where);
     }
 
     /**
@@ -1191,13 +1191,7 @@ class Grammar extends BaseGrammar
      */
     public function compileInsert(Builder $query, array $values)
     {
-        // Add PREFIX declarations for registered namespaces
-        $prefixes = '';
-        foreach (\EasyRdf\RdfNamespace::namespaces() as $prefix => $uri) {
-            $prefixes .= sprintf("PREFIX %s: <%s>\n", $prefix, $uri);
-        }
-
-        $ret = $prefixes . 'INSERT DATA {';
+        $ret = 'INSERT DATA {';
 
         $graph = $query->getGraph();
         if ($graph) {
