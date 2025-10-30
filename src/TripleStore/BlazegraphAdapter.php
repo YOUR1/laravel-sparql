@@ -101,4 +101,54 @@ class BlazegraphAdapter extends AbstractAdapter
             // Example: 'analytic' => 'hint:Query hint:analytic "true" .',
         ];
     }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Blazegraph supports namespaces.
+     */
+    public function supportsNamespaces(): bool
+    {
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Converts:
+     *   http://localhost:9999/bigdata/sparql
+     * To:
+     *   http://localhost:9999/bigdata/namespace/NAMESPACE/sparql
+     */
+    public function buildNamespaceEndpoint(string $baseEndpoint, string $namespace): string
+    {
+        // Extract base URL (remove /sparql or /namespace/kb/sparql from end)
+        $baseUrl = preg_replace('#/(?:namespace/[^/]+/)?sparql$#', '', $baseEndpoint);
+
+        // Build namespace-specific endpoint
+        return "{$baseUrl}/namespace/{$namespace}/sparql";
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function extractNamespace(string $endpoint): ?string
+    {
+        if (preg_match('#/namespace/([^/]+)/sparql$#', $endpoint, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if endpoint is a namespace-specific URL.
+     *
+     * @param  string  $endpoint
+     * @return bool
+     */
+    public function isNamespaceEndpoint(string $endpoint): bool
+    {
+        return $this->extractNamespace($endpoint) !== null;
+    }
 }

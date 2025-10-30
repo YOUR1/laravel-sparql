@@ -73,4 +73,31 @@ interface TripleStoreAdapter
      * @return array<string, string> Key-value pairs of optimization hints
      */
     public function getQueryHints(): array;
+
+    /**
+     * Check if this adapter supports namespaces.
+     *
+     * @return bool True if the implementation supports namespace-based isolation
+     */
+    public function supportsNamespaces(): bool;
+
+    /**
+     * Build a namespace-aware endpoint URL.
+     *
+     * For implementations that support namespaces (e.g., Blazegraph),
+     * this modifies the endpoint to target a specific namespace.
+     *
+     * @param  string  $baseEndpoint  The base endpoint URL
+     * @param  string  $namespace  The namespace name
+     * @return string The namespace-specific endpoint URL
+     */
+    public function buildNamespaceEndpoint(string $baseEndpoint, string $namespace): string;
+
+    /**
+     * Extract namespace from an endpoint URL.
+     *
+     * @param  string  $endpoint  The endpoint URL
+     * @return string|null The namespace name, or null if not a namespace URL
+     */
+    public function extractNamespace(string $endpoint): ?string;
 }

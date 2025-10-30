@@ -42,6 +42,13 @@ class Connection extends BaseConnection
     protected $graph;
 
     /**
+     * The Blazegraph namespace for queries (optional).
+     *
+     * @var string|null
+     */
+    protected $namespace = null;
+
+    /**
      * Create a new SPARQL connection instance.
      */
     public function __construct(array $config)
@@ -77,6 +84,11 @@ class Connection extends BaseConnection
     {
         $default = new Query\Builder($this, $this->getQueryGrammar(), $this->getPostProcessor());
         $default->graph($this->graph);
+
+        // Pass namespace to query builder if set
+        if ($this->namespace !== null) {
+            $default->namespace($this->namespace);
+        }
 
         return $default;
     }
@@ -114,6 +126,53 @@ class Connection extends BaseConnection
     public function getGraph()
     {
         return $this->graph;
+    }
+
+    /**
+     * Set the Blazegraph namespace for subsequent queries.
+     *
+     * @param  string  $namespace  The Blazegraph namespace name
+     * @return $this
+     */
+    public function namespace(string $namespace): static
+    {
+        // Validate namespace name (only alphanumeric, underscore, hyphen)
+        if (! preg_match('/^[a-zA-Z0-9_-]+$/', $namespace)) {
+            throw new \InvalidArgumentException('Invalid namespace name. Only alphanumeric characters, underscores, and hyphens are allowed.');
+        }
+
+        $this->namespace = $namespace;
+
+        return $this;
+    }
+
+    /**
+     * Get the current Blazegraph namespace.
+     *
+     * @return string|null
+     */
+    public function getNamespace(): ?string
+    {
+        return $this->namespace;
+    }
+
+    /**
+     * Execute a query within a specific namespace scope.
+     *
+     * @param  string  $namespace  The Blazegraph namespace
+     * @param  \Closure  $callback  The query callback
+     * @return mixed
+     */
+    public function withinNamespace(string $namespace, \Closure $callback): mixed
+    {
+        $previousNamespace = $this->namespace;
+        $this->namespace = $namespace;
+
+        try {
+            return $callback($this->query());
+        } finally {
+            $this->namespace = $previousNamespace;
+        }
     }
 
     /**
@@ -164,16 +223,19 @@ class Connection extends BaseConnection
                 'compiled' => $binded_query,
             ]);
 
+            // Get the effective connection (namespace-aware)
+            $connection = $this->getEffectiveConnection();
+
             // Detect if this is an update operation (INSERT, DELETE, CLEAR, etc.)
             // Skip PREFIX, BASE, and WITH clauses when checking
             $is_update = preg_match('/^\s*(?:(?:PREFIX|BASE)\s+.*\s*)*(?:WITH\s+<[^>]+>\s*)?\s*(INSERT|DELETE|LOAD|CLEAR|CREATE|DROP|COPY|MOVE|ADD)/is', trim($binded_query));
             if ($is_update) {
-                $ret = $this->connection->update($binded_query);
+                $ret = $connection->update($binded_query);
 
                 return $ret;
             }
 
-            $ret = $this->connection->query($binded_query);
+            $ret = $connection->query($binded_query);
 
             // ASK queries return a Result object with isTrue() method - don't convert
             if (preg_match('/^\s*ASK/i', trim($binded_query))) {
@@ -193,6 +255,25 @@ class Connection extends BaseConnection
     }
 
     /**
+     * Get the effective SPARQL client connection (namespace-aware).
+     *
+     * @return \EasyRdf\Sparql\Client
+     */
+    protected function getEffectiveConnection(): \EasyRdf\Sparql\Client
+    {
+        // If no namespace is set, use the default connection
+        if ($this->namespace === null) {
+            return $this->connection;
+        }
+
+        // Create a new client with namespace-aware endpoints
+        $queryUrl = $this->getEffectiveEndpoint();
+        $updateUrl = $this->getEffectiveUpdateEndpoint();
+
+        return new \EasyRdf\Sparql\Client($queryUrl, $updateUrl);
+    }
+
+    /**
      * Execute a SPARQL query and return a generator.
      *
      * @param  string  $query  The SPARQL query
@@ -209,7 +290,10 @@ class Connection extends BaseConnection
 
             $binded_query = $this->altBindValues($query, $bindings);
 
-            return $this->connection->query($binded_query);
+            // Get the effective connection (namespace-aware)
+            $connection = $this->getEffectiveConnection();
+
+            return $connection->query($binded_query);
         });
 
         foreach ($ret as $record) {
@@ -310,6 +394,45 @@ class Connection extends BaseConnection
     }
 
     /**
+     * Get the SPARQL endpoint URL, with namespace if set.
+     *
+     * @return string
+     */
+    protected function getEffectiveEndpoint(): string
+    {
+        $endpoint = $this->config['host'] ?? $this->config['endpoint'];
+
+        // If namespace is set and the adapter supports namespaces, modify endpoint
+        if ($this->namespace !== null && $this->adapter->supportsNamespaces()) {
+            $endpoint = $this->adapter->buildNamespaceEndpoint($endpoint, $this->namespace);
+        }
+
+        return $endpoint;
+    }
+
+    /**
+     * Get the SPARQL update endpoint URL, with namespace if set.
+     *
+     * @return string|null
+     */
+    protected function getEffectiveUpdateEndpoint(): ?string
+    {
+        $updateEndpoint = $this->config['update_endpoint'] ?? null;
+
+        // If no explicit update endpoint, derive from query endpoint
+        if ($updateEndpoint === null) {
+            return $this->getEffectiveEndpoint();
+        }
+
+        // If namespace is set and the adapter supports namespaces, modify endpoint
+        if ($this->namespace !== null && $this->adapter->supportsNamespaces()) {
+            $updateEndpoint = $this->adapter->buildNamespaceEndpoint($updateEndpoint, $this->namespace);
+        }
+
+        return $updateEndpoint;
+    }
+
+    /**
      * Create a new SPARQL client connection.
      *
      * @return \EasyRdf\Sparql\Client
@@ -336,6 +459,11 @@ class Connection extends BaseConnection
         // Set default graph if specified
         if (isset($config['graph'])) {
             $this->graph = $config['graph'];
+        }
+
+        // Set default namespace if specified
+        if (isset($config['namespace'])) {
+            $this->namespace = $config['namespace'];
         }
 
         // Configure authentication if provided

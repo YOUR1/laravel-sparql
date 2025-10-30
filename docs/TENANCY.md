@@ -14,6 +14,14 @@ The Laravel SPARQL package provides full support for multi-tenancy through a cus
 - Standard SPARQL multi-tenancy pattern
 - Easier to manage and monitor
 
+### Namespace-Based Tenancy (Blazegraph)
+
+- Uses Blazegraph's namespace feature for complete data isolation
+- Each tenant gets their own namespace within a shared Blazegraph instance
+- Provides strong isolation while sharing infrastructure
+- Ideal for multi-data source applications
+- See "Blazegraph Namespace-Based Tenancy" section below
+
 ### Endpoint-Based Tenancy (Optional)
 
 - Each tenant can optionally have their own SPARQL endpoint
@@ -96,6 +104,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         'sparql_implementation',
         'sparql_update_endpoint',
         'sparql_graph',
+        'sparql_namespace',  // Blazegraph namespace
         'sparql_auth',
         'sparql_namespaces',
     ];
@@ -113,7 +122,8 @@ The bootstrapper recognizes the following tenant attributes:
 
 | Attribute | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `sparql_graph` | string | **Yes** | **Named graph URI for tenant data isolation (required for all tenants)** |
+| `sparql_graph` | string | **Yes** | **Named graph URI for tenant data isolation (required for graph-based tenancy)** |
+| `sparql_namespace` | string | No | **Blazegraph namespace for namespace-based isolation** (alternative to `sparql_graph`) |
 | `sparql_endpoint` | string | No | Override the default SPARQL endpoint (for endpoint-based tenancy) |
 | `sparql_implementation` | string | No | Triple store type: `fuseki`, `blazegraph`, `generic` (only when `sparql_endpoint` is set) |
 | `sparql_update_endpoint` | string | No | Separate update endpoint (only when `sparql_endpoint` is set) |
@@ -301,6 +311,116 @@ This configuration is used when no tenant context is active.
 ### 3. No Model Changes Required
 
 Your existing SPARQL models work without modification. The bootstrapper automatically switches connections based on tenant context.
+
+## Blazegraph Namespace-Based Tenancy
+
+For Blazegraph users, namespace-based tenancy provides complete data isolation using Blazegraph's built-in namespace feature.
+
+### When to Use Namespace-Based Tenancy
+
+- **Multi-Data Source Applications**: Each external data source (API, endpoint, etc.) has its own namespace
+- **Complete Isolation Required**: Namespaces provide stronger isolation than named graphs
+- **Temporal Data Management**: Historical data in dated namespaces (e.g., `tenant_X_2025_01`)
+- **Data Pipeline Stages**: Separate namespaces for raw, validated, and published data
+
+### Setting Up Namespace-Based Tenants
+
+```php
+use App\Models\Tenant;
+
+// Namespace-based tenants (no sparql_graph needed)
+$tenant1 = Tenant::create([
+    'id' => 'data-source-kadaster',
+    'sparql_namespace' => 'tenant_begrippen_ds_kadaster',
+]);
+
+$tenant2 = Tenant::create([
+    'id' => 'data-source-abdl',
+    'sparql_namespace' => 'tenant_begrippen_ds_abdl',
+]);
+
+$tenant3 = Tenant::create([
+    'id' => 'data-source-nen',
+    'sparql_namespace' => 'tenant_begrippen_ds_nen',
+]);
+```
+
+### Using Namespace-Based Tenants
+
+Once a namespace-based tenant is initialized, all queries automatically use the tenant's namespace:
+
+```php
+use App\Models\Tenant;
+
+// Initialize tenant with namespace
+$tenant = Tenant::find('data-source-kadaster');
+tenancy()->initialize($tenant);
+
+// All queries now use the 'tenant_begrippen_ds_kadaster' namespace
+$count = DB::connection('sparql')
+    ->table('http://www.w3.org/2004/02/skos/core#Concept')
+    ->count();
+
+// Models automatically use the namespace
+class SKOSConcept extends Model
+{
+    protected $connection = 'sparql';
+    protected $table = 'http://www.w3.org/2004/02/skos/core#Concept';
+}
+
+$concepts = SKOSConcept::all(); // Queries in tenant_begrippen_ds_kadaster namespace
+```
+
+### Combining Namespace and Graph Isolation
+
+You can use both namespace and graph isolation for maximum security:
+
+```php
+$tenant = Tenant::create([
+    'id' => 'secure-tenant',
+    'sparql_namespace' => 'tenant_secure',
+    'sparql_graph' => 'http://secure.example.com/graph',
+]);
+
+// Queries will use both the namespace AND the graph
+tenancy()->initialize($tenant);
+$products = Product::all(); // Queries in 'tenant_secure' namespace within specific graph
+```
+
+### Migration Between Graph and Namespace Tenancy
+
+If you need to migrate from graph-based to namespace-based tenancy:
+
+```php
+use Illuminate\Support\Facades\DB;
+
+// Before: Graph-based tenant
+$oldTenant = Tenant::find('acme-corp');
+tenancy()->initialize($oldTenant);
+
+// Export data from graph
+$products = Product::all();
+
+// After: Create namespace-based tenant
+$newTenant = Tenant::create([
+    'id' => 'acme-corp',
+    'sparql_namespace' => 'tenant_acme_corp',
+]);
+
+tenancy()->initialize($newTenant);
+
+// Import data into namespace
+foreach ($products as $product) {
+    $product->save(); // Saved to new namespace
+}
+```
+
+### Important Notes
+
+- Namespace isolation is **complete** - data in one namespace cannot see data in another
+- Namespace names must be **alphanumeric with underscores/hyphens only**
+- The bootstrapper automatically handles endpoint URL transformation
+- Namespaces work with **Blazegraph only** - other triple stores will ignore the `sparql_namespace` attribute
 
 ## Advanced Scenarios
 

@@ -23,6 +23,9 @@ Base model class for SPARQL resources.
 // RDF class (maps to rdf:type)
 protected $table = 'http://schema.org/Person';
 
+// Blazegraph namespace (optional)
+protected $namespace = null;
+
 // Property URI mappings
 protected $propertyUris = [
     'name' => 'http://schema.org/name',
@@ -119,6 +122,26 @@ public function setRdfClass(string $rdfClass): static
 
 // Usage
 $resource->setRdfClass('http://schema.org/Product');
+```
+
+##### setNamespace($namespace)
+Set the Blazegraph namespace for this model.
+
+```php
+public function setNamespace(string $namespace): static
+
+// Usage
+$model->setNamespace('tenant_X_ds_Y');
+```
+
+##### getNamespace()
+Get the Blazegraph namespace for this model.
+
+```php
+public function getNamespace(): ?string
+
+// Usage
+$namespace = $model->getNamespace();
 ```
 
 ##### save($options = [])
@@ -229,6 +252,31 @@ $adults = Person::where('age', '>', 18)->get();
 ### LinkedData\SPARQL\Eloquent\Builder
 
 Query builder for SPARQL queries.
+
+#### Namespace Methods
+
+##### namespace($namespace)
+Set the Blazegraph namespace for this query.
+
+```php
+public function namespace(string $namespace): static
+
+// Usage
+$query = DB::connection('sparql')
+    ->namespace('tenant_X_ds_Y')
+    ->table('http://schema.org/Person')
+    ->where('age', '>', 18);
+```
+
+##### getNamespace()
+Get the Blazegraph namespace for this query.
+
+```php
+public function getNamespace(): ?string
+
+// Usage
+$namespace = $query->getNamespace();
+```
 
 #### Query Constraints
 
@@ -465,6 +513,38 @@ public function delete($query, $bindings = []): bool
 
 // Usage
 DB::connection('sparql')->delete('DELETE WHERE { <http://example.com/person/1> ?p ?o }');
+```
+
+##### namespace($namespace)
+Set the Blazegraph namespace for subsequent queries.
+
+```php
+public function namespace(string $namespace): static
+
+// Usage
+DB::connection('sparql')->namespace('tenant_X_ds_Y');
+```
+
+##### getNamespace()
+Get the current Blazegraph namespace.
+
+```php
+public function getNamespace(): ?string
+
+// Usage
+$namespace = DB::connection('sparql')->getNamespace();
+```
+
+##### withinNamespace($namespace, $callback)
+Execute a query within a specific namespace scope.
+
+```php
+public function withinNamespace(string $namespace, \Closure $callback): mixed
+
+// Usage
+$results = DB::connection('sparql')->withinNamespace('tenant_X', function($query) {
+    return $query->table('http://schema.org/Person')->count();
+});
 ```
 
 ##### table($table)

@@ -32,12 +32,16 @@ Add to `config/database.php`:
         'driver' => 'sparql',
         'endpoint' => env('SPARQL_ENDPOINT', 'http://localhost:3030/test/sparql'),
 
+        // Triple store implementation (fuseki, blazegraph, generic)
+        'implementation' => env('SPARQL_IMPLEMENTATION', 'fuseki'),
+
         'auth' => [
             'type' => 'digest',
             'username' => env('SPARQL_USERNAME'),
             'password' => env('SPARQL_PASSWORD'),
         ],
 
+        // RDF prefix namespaces
         'namespaces' => [
             'rdf' => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
             'rdfs' => 'http://www.w3.org/2000/01/rdf-schema#',
@@ -46,6 +50,12 @@ Add to `config/database.php`:
             'foaf' => 'http://xmlns.com/foaf/0.1/',
             'schema' => 'http://schema.org/',
         ],
+
+        // Optional: Default named graph for queries
+        'graph' => env('SPARQL_GRAPH', null),
+
+        // Optional: Blazegraph namespace (for namespace-based isolation)
+        'namespace' => env('SPARQL_NAMESPACE', null),
     ],
 ],
 ```
@@ -702,6 +712,117 @@ $people = Person::on('sparql')
     'graph' => 'http://example.com/graph/default',
 ],
 ```
+
+### Working with Blazegraph Namespaces
+
+Blazegraph supports namespace-based isolation, allowing you to query separate namespace-specific endpoints. This is useful for multi-tenant applications or isolating different data sources.
+
+#### Configuration
+
+```php
+// Option 1: Set default namespace in config
+'sparql' => [
+    'driver' => 'sparql',
+    'host' => 'http://localhost:9999/bigdata/sparql',
+    'implementation' => 'blazegraph',
+    'namespace' => 'my_namespace',  // All queries will use this namespace
+],
+
+// Option 2: Create multiple connections for different namespaces
+'sparql_tenant_a' => [
+    'driver' => 'sparql',
+    'host' => 'http://localhost:9999/bigdata/sparql',
+    'implementation' => 'blazegraph',
+    'namespace' => 'tenant_a',
+],
+
+'sparql_tenant_b' => [
+    'driver' => 'sparql',
+    'host' => 'http://localhost:9999/bigdata/sparql',
+    'implementation' => 'blazegraph',
+    'namespace' => 'tenant_b',
+],
+```
+
+#### Query Builder with Namespaces
+
+```php
+// Fluent API - set namespace on connection
+$count = DB::connection('sparql')
+    ->namespace('tenant_X_ds_Y')
+    ->table('http://www.w3.org/2004/02/skos/core#Concept')
+    ->where('http://www.w3.org/2004/02/skos/core#inScheme', $schemeUri)
+    ->count();
+
+// Chain with other query methods
+$concepts = DB::connection('sparql')
+    ->namespace('tenant_X_ds_Y')
+    ->table('http://www.w3.org/2004/02/skos/core#Concept')
+    ->where('http://www.w3.org/2004/02/skos/core#inScheme', $schemeUri)
+    ->limit(100)
+    ->get();
+```
+
+#### Scoped Namespace Queries
+
+```php
+// Execute queries within a namespace scope
+$results = DB::connection('sparql')->withinNamespace('tenant_X', function($query) {
+    return $query->table('http://www.w3.org/2004/02/skos/core#Concept')
+        ->where('http://www.w3.org/2004/02/skos/core#inScheme', $schemeUri)
+        ->get();
+});
+
+// Namespace is automatically restored after the closure
+```
+
+#### Models with Namespaces
+
+```php
+// Define namespace in model
+class SKOSConcept extends Model
+{
+    protected $connection = 'sparql';
+    protected $namespace = 'tenant_begrippen_ds_abdl';
+    protected $table = 'http://www.w3.org/2004/02/skos/core#Concept';
+
+    protected $propertyUris = [
+        'prefLabel' => 'http://www.w3.org/2004/02/skos/core#prefLabel',
+        'altLabel' => 'http://www.w3.org/2004/02/skos/core#altLabel',
+        'inScheme' => 'http://www.w3.org/2004/02/skos/core#inScheme',
+    ];
+}
+
+// All queries automatically use the namespace
+$concepts = SKOSConcept::where('inScheme', $schemeUri)->get();
+$count = SKOSConcept::count();
+```
+
+#### Multi-Namespace Applications
+
+```php
+// Query multiple namespaces for aggregation
+$namespaces = ['tenant_X_ds_1', 'tenant_X_ds_2', 'tenant_X_ds_3'];
+$totals = [];
+
+foreach ($namespaces as $ns) {
+    $count = DB::connection('sparql')
+        ->namespace($ns)
+        ->table('http://www.w3.org/2004/02/skos/core#Concept')
+        ->count();
+
+    $totals[$ns] = $count;
+}
+
+// Output: ['tenant_X_ds_1' => 205964, 'tenant_X_ds_2' => 150000, ...]
+```
+
+#### Important Notes
+
+- Namespace support is **Blazegraph-specific** and will be ignored for other triple stores (Fuseki, Virtuoso, etc.)
+- Namespaces provide **complete data isolation** - queries in one namespace cannot see data in another
+- Namespace names must contain only **alphanumeric characters, underscores, and hyphens**
+- Blazegraph endpoints are automatically converted: `http://localhost:9999/bigdata/sparql` → `http://localhost:9999/bigdata/namespace/NAMESPACE/sparql`
 
 ### Raw SPARQL Queries
 
