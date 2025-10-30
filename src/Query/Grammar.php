@@ -449,6 +449,7 @@ class Grammar extends BaseGrammar
                 }
 
                 $compiled = $this->{"where{$where['type']}"}($query, $where);
+
                 return $needsBraces ? $boolean . ' { ' . $compiled . ' }' : $boolean . $compiled;
             }
         })->all();
