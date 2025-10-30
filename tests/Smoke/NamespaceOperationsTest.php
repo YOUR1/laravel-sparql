@@ -28,6 +28,9 @@ class NamespaceOperationsTest extends IntegrationTestCase
             $this->markTestSkipped('Namespace tests require Blazegraph implementation');
         }
 
+        // Create test namespace before each test
+        $this->connection->createNamespace($this->testNamespace);
+
         // Clear test namespace before each test
         $this->clearTestNamespace();
     }
@@ -36,6 +39,9 @@ class NamespaceOperationsTest extends IntegrationTestCase
     {
         // Clean up test namespace after each test
         $this->clearTestNamespace();
+
+        // Delete the test namespace
+        $this->connection->deleteNamespace($this->testNamespace);
 
         parent::tearDown();
     }
@@ -137,9 +143,13 @@ class NamespaceOperationsTest extends IntegrationTestCase
             $this->connection->statement($insertQuery);
         });
 
-        // Count triples in namespace
+        // Count triples in namespace (only our test data, not ontology triples)
         $count = $this->connection->withinNamespace($this->testNamespace, function ($query) {
-            $countQuery = 'SELECT (COUNT(*) as ?count) WHERE { ?s ?p ?o }';
+            // Query for our specific test triples only
+            $countQuery = 'SELECT (COUNT(*) as ?count) WHERE {
+                ?s <http://schema.org/name> ?o
+                FILTER(STRSTARTS(STR(?s), "http://example.org/test/item/"))
+            }';
             $result = $this->connection->select($countQuery);
 
             foreach ($result as $row) {
@@ -219,6 +229,9 @@ class NamespaceOperationsTest extends IntegrationTestCase
         $otherNamespace = 'laravel_sparql_test_namespace_2';
 
         try {
+            // Create the second test namespace
+            $this->connection->createNamespace($otherNamespace);
+
             // Insert data in first namespace
             $this->connection->withinNamespace($this->testNamespace, function ($query) {
                 $triple = '<http://example.org/test/isolated/1> <http://schema.org/name> "Namespace 1" .';
@@ -259,12 +272,13 @@ class NamespaceOperationsTest extends IntegrationTestCase
 
             $this->assertFalse($crossCheck->isTrue(), 'First namespace should not see second namespace data');
         } finally {
-            // Clean up second namespace
+            // Clean up and delete second namespace
             try {
                 $this->connection->withinNamespace($otherNamespace, function ($query) {
                     $deleteQuery = 'DELETE WHERE { ?s ?p ?o }';
                     $this->connection->statement($deleteQuery);
                 });
+                $this->connection->deleteNamespace($otherNamespace);
             } catch (\Exception $e) {
                 // Cleanup failed, but test already ran
             }

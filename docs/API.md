@@ -547,6 +547,59 @@ $results = DB::connection('sparql')->withinNamespace('tenant_X', function($query
 });
 ```
 
+##### createNamespace($namespace, $properties = [])
+Create a Blazegraph namespace.
+
+```php
+public function createNamespace(string $namespace, array $properties = []): bool
+
+// Usage - Default settings (includes RDF/RDFS/OWL vocabulary)
+DB::connection('sparql')->createNamespace('my_namespace');
+
+// Usage - Custom properties
+DB::connection('sparql')->createNamespace('my_namespace', [
+    'com.bigdata.rdf.store.AbstractTripleStore.quads' => 'true',
+    'com.bigdata.rdf.store.AbstractTripleStore.textIndex' => 'true',
+]);
+
+// Usage - No ontology triples
+DB::connection('sparql')->createNamespace('test_namespace', [
+    'com.bigdata.rdf.store.AbstractTripleStore.axiomsClass' => 'com.bigdata.rdf.axioms.NoAxioms'
+]);
+```
+
+**Available Properties:**
+- `com.bigdata.rdf.store.AbstractTripleStore.quads` - Enable named graphs (default: varies)
+- `com.bigdata.rdf.store.AbstractTripleStore.textIndex` - Enable full-text search (default: false)
+- `com.bigdata.rdf.store.AbstractTripleStore.axiomsClass` - Axioms class (e.g., 'com.bigdata.rdf.axioms.NoAxioms')
+- `com.bigdata.rdf.sail.truthMaintenance` - Truth maintenance (incompatible with quads)
+
+See [Blazegraph Configuration](https://github.com/blazegraph/database/wiki/Configuration_Options) for all options.
+
+##### deleteNamespace($namespace)
+Delete a Blazegraph namespace.
+
+```php
+public function deleteNamespace(string $namespace): bool
+
+// Usage
+DB::connection('sparql')->deleteNamespace('old_namespace');
+```
+
+**Warning:** This permanently deletes the namespace and all its data.
+
+##### namespaceExists($namespace)
+Check if a Blazegraph namespace exists.
+
+```php
+public function namespaceExists(string $namespace): bool
+
+// Usage
+if (DB::connection('sparql')->namespaceExists('my_namespace')) {
+    echo "Namespace exists!";
+}
+```
+
 ##### table($table)
 Begin a query on a table (RDF class).
 

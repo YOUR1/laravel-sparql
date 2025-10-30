@@ -580,6 +580,75 @@ class Connection extends BaseConnection
     }
 
     /**
+     * Create a namespace in the triple store.
+     *
+     * For Blazegraph, you can customize namespace properties:
+     *
+     * Example - Create namespace without ontology triples:
+     * ```php
+     * $connection->createNamespace('my_namespace', [
+     *     'com.bigdata.rdf.store.AbstractTripleStore.axiomsClass' => 'com.bigdata.rdf.axioms.NoAxioms'
+     * ]);
+     * ```
+     *
+     * Example - Create namespace with quads support:
+     * ```php
+     * $connection->createNamespace('my_namespace', [
+     *     'com.bigdata.rdf.store.AbstractTripleStore.quads' => 'true'
+     * ]);
+     * ```
+     *
+     * @param  string  $namespace  The namespace name
+     * @param  array  $properties  Optional implementation-specific properties
+     * @return bool True if created or already exists
+     *
+     * @throws \RuntimeException If namespace creation fails
+     *
+     * @see \LinkedData\SPARQL\TripleStore\BlazegraphAdapter::createNamespace() For Blazegraph-specific options
+     */
+    public function createNamespace(string $namespace, array $properties = []): bool
+    {
+        return $this->adapter->createNamespace(
+            $this->config['host'],
+            $this->httpclient,
+            $namespace,
+            $properties
+        );
+    }
+
+    /**
+     * Delete a namespace from the triple store.
+     *
+     * @param  string  $namespace  The namespace name
+     * @return bool True if deleted or doesn't exist
+     *
+     * @throws \RuntimeException If namespace deletion fails
+     */
+    public function deleteNamespace(string $namespace): bool
+    {
+        return $this->adapter->deleteNamespace(
+            $this->config['host'],
+            $this->httpclient,
+            $namespace
+        );
+    }
+
+    /**
+     * Check if a namespace exists in the triple store.
+     *
+     * @param  string  $namespace  The namespace name
+     * @return bool True if exists
+     */
+    public function namespaceExists(string $namespace): bool
+    {
+        return $this->adapter->namespaceExists(
+            $this->config['host'],
+            $this->httpclient,
+            $namespace
+        );
+    }
+
+    /**
      * Post RDF data directly to the Graph Store Protocol endpoint.
      * This is more efficient than INSERT DATA for bulk operations.
      *

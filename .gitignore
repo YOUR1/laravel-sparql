@@ -2,6 +2,9 @@
 composer.lock
 var/
 
+bootstrap/cache
+
+
 # Docker
 .docker/
 fuseki-data/

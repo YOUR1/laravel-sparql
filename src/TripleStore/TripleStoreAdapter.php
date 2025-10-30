@@ -100,4 +100,46 @@ interface TripleStoreAdapter
      * @return string|null The namespace name, or null if not a namespace URL
      */
     public function extractNamespace(string $endpoint): ?string;
+
+    /**
+     * Create a namespace in the triple store.
+     *
+     * The $properties array allows customization of namespace behavior.
+     * Available properties are implementation-specific.
+     *
+     * For implementations without namespace support, this is a no-op.
+     *
+     * @param  string  $baseEndpoint  The base endpoint URL
+     * @param  \MadBob\EasyRDFonGuzzle\HttpClient  $httpClient  The HTTP client
+     * @param  string  $namespace  The namespace name
+     * @param  array  $properties  Optional implementation-specific namespace properties
+     * @return bool True if created or already exists
+     *
+     * @throws \RuntimeException If namespace creation fails
+     *
+     * @see BlazegraphAdapter::createNamespace() For Blazegraph-specific property options
+     */
+    public function createNamespace(string $baseEndpoint, $httpClient, string $namespace, array $properties = []): bool;
+
+    /**
+     * Delete a namespace from the triple store.
+     *
+     * @param  string  $baseEndpoint  The base endpoint URL
+     * @param  \MadBob\EasyRDFonGuzzle\HttpClient  $httpClient  The HTTP client
+     * @param  string  $namespace  The namespace name
+     * @return bool True if deleted or doesn't exist
+     *
+     * @throws \RuntimeException If namespace deletion fails
+     */
+    public function deleteNamespace(string $baseEndpoint, $httpClient, string $namespace): bool;
+
+    /**
+     * Check if a namespace exists in the triple store.
+     *
+     * @param  string  $baseEndpoint  The base endpoint URL
+     * @param  \MadBob\EasyRDFonGuzzle\HttpClient  $httpClient  The HTTP client
+     * @param  string  $namespace  The namespace name
+     * @return bool True if exists
+     */
+    public function namespaceExists(string $baseEndpoint, $httpClient, string $namespace): bool;
 }

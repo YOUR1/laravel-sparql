@@ -717,6 +717,42 @@ $people = Person::on('sparql')
 
 Blazegraph supports namespace-based isolation, allowing you to query separate namespace-specific endpoints. This is useful for multi-tenant applications or isolating different data sources.
 
+#### Creating and Managing Namespaces
+
+Before using a namespace, you need to create it. The package provides methods to create, delete, and check namespace existence.
+
+```php
+// Create a namespace with default settings (includes RDF/RDFS/OWL vocabulary)
+DB::connection('sparql')->createNamespace('my_namespace');
+
+// Create a namespace with custom properties
+DB::connection('sparql')->createNamespace('my_namespace', [
+    'com.bigdata.rdf.store.AbstractTripleStore.quads' => 'true',
+    'com.bigdata.rdf.store.AbstractTripleStore.textIndex' => 'true',
+]);
+
+// Create a namespace without ontology triples (for testing or minimal setup)
+DB::connection('sparql')->createNamespace('test_namespace', [
+    'com.bigdata.rdf.store.AbstractTripleStore.axiomsClass' => 'com.bigdata.rdf.axioms.NoAxioms'
+]);
+
+// Check if namespace exists
+if (DB::connection('sparql')->namespaceExists('my_namespace')) {
+    echo "Namespace exists!";
+}
+
+// Delete a namespace
+DB::connection('sparql')->deleteNamespace('old_namespace');
+```
+
+**Available Properties for Namespace Creation:**
+- `com.bigdata.rdf.store.AbstractTripleStore.quads` - Enable/disable named graphs support
+- `com.bigdata.rdf.store.AbstractTripleStore.textIndex` - Enable/disable full-text search
+- `com.bigdata.rdf.store.AbstractTripleStore.axiomsClass` - Set axioms class (e.g., `com.bigdata.rdf.axioms.NoAxioms` to disable ontology)
+- `com.bigdata.rdf.sail.truthMaintenance` - Enable/disable truth maintenance (incompatible with quads)
+
+See [Blazegraph Configuration Options](https://github.com/blazegraph/database/wiki/Configuration_Options) for more properties.
+
 #### Configuration
 
 ```php

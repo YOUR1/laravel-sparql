@@ -96,4 +96,34 @@ abstract class AbstractAdapter implements TripleStoreAdapter
     {
         return null;
     }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Default: no-op for implementations without namespace support.
+     */
+    public function createNamespace(string $baseEndpoint, $httpClient, string $namespace, array $properties = []): bool
+    {
+        return true; // No-op for non-namespace implementations
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Default: no-op for implementations without namespace support.
+     */
+    public function deleteNamespace(string $baseEndpoint, $httpClient, string $namespace): bool
+    {
+        return true; // No-op for non-namespace implementations
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Default: always return true for implementations without namespace support.
+     */
+    public function namespaceExists(string $baseEndpoint, $httpClient, string $namespace): bool
+    {
+        return true; // No-op for non-namespace implementations
+    }
 }
