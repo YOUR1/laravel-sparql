@@ -2180,7 +2180,7 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
     {
         // Handle language-tagged values
         if (is_array($value) && isset($value['value'])) {
-            $val = addslashes($value['value']);
+            $val = \LinkedData\SPARQL\Support\StringHelper::escapeSparqlLiteral($value['value']);
 
             if (isset($value['lang'])) {
                 return "\"{$val}\"@{$value['lang']}";
@@ -2215,6 +2215,6 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
         }
 
         // Default: string literal
-        return '"' . addslashes($value) . '"';
+        return '"' . \LinkedData\SPARQL\Support\StringHelper::escapeSparqlLiteral($value) . '"';
     }
 }
