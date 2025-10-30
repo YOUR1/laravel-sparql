@@ -143,9 +143,6 @@ class BlazegraphAdapter extends AbstractAdapter
 
     /**
      * Check if endpoint is a namespace-specific URL.
-     *
-     * @param  string  $endpoint
-     * @return bool
      */
     public function isNamespaceEndpoint(string $endpoint): bool
     {

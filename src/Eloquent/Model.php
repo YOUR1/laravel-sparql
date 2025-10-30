@@ -1206,7 +1206,6 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
     /**
      * Set the Blazegraph namespace for this model.
      *
-     * @param  string  $namespace
      * @return $this
      */
     public function setNamespace(string $namespace): static
@@ -1218,8 +1217,6 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
 
     /**
      * Get the Blazegraph namespace for this model.
-     *
-     * @return string|null
      */
     public function getNamespace(): ?string
     {

@@ -148,8 +148,6 @@ class Connection extends BaseConnection
 
     /**
      * Get the current Blazegraph namespace.
-     *
-     * @return string|null
      */
     public function getNamespace(): ?string
     {
@@ -161,7 +159,6 @@ class Connection extends BaseConnection
      *
      * @param  string  $namespace  The Blazegraph namespace
      * @param  \Closure  $callback  The query callback
-     * @return mixed
      */
     public function withinNamespace(string $namespace, \Closure $callback): mixed
     {
@@ -256,8 +253,6 @@ class Connection extends BaseConnection
 
     /**
      * Get the effective SPARQL client connection (namespace-aware).
-     *
-     * @return \EasyRdf\Sparql\Client
      */
     protected function getEffectiveConnection(): \EasyRdf\Sparql\Client
     {
@@ -395,8 +390,6 @@ class Connection extends BaseConnection
 
     /**
      * Get the SPARQL endpoint URL, with namespace if set.
-     *
-     * @return string
      */
     protected function getEffectiveEndpoint(): string
     {
@@ -412,8 +405,6 @@ class Connection extends BaseConnection
 
     /**
      * Get the SPARQL update endpoint URL, with namespace if set.
-     *
-     * @return string|null
      */
     protected function getEffectiveUpdateEndpoint(): ?string
     {

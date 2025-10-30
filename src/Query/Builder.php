@@ -321,8 +321,6 @@ class Builder
 
     /**
      * Get the Blazegraph namespace for this query.
-     *
-     * @return string|null
      */
     public function getNamespace(): ?string
     {
