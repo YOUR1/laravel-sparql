@@ -125,6 +125,13 @@ class Builder
     public $columns;
 
     /**
+     * Custom SELECT expressions (e.g., aggregates, computed values).
+     *
+     * @var array
+     */
+    public $selectExpressions = [];
+
+    /**
      * Indicates if the query returns distinct results.
      *
      * @var bool
@@ -151,6 +158,13 @@ class Builder
      * @var array
      */
     public $wheres = [];
+
+    /**
+     * BIND expressions for the query.
+     *
+     * @var array
+     */
+    public $binds = [];
 
     /**
      * The groupings for the query.
@@ -484,6 +498,106 @@ class Builder
     }
 
     /**
+     * Add a custom SELECT expression (e.g., aggregate, computed value).
+     * This is separate from triple patterns and will be used in SELECT clause.
+     *
+     * @param  string|Expression|\Illuminate\Database\Query\Expression  $expression
+     * @return $this
+     */
+    public function selectExpression($expression)
+    {
+        // Handle Laravel DB::raw() expressions
+        if ($expression instanceof \Illuminate\Database\Query\Expression) {
+            // Store the raw Laravel expression directly, not wrapped
+            $this->selectExpressions[] = $expression;
+        } elseif (! $expression instanceof Expression) {
+            $expression = new Expression($expression);
+            $this->selectExpressions[] = $expression;
+        } else {
+            $this->selectExpressions[] = $expression;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Add an explicit triple pattern to the WHERE clause.
+     *
+     * @param  string|Expression  $subject
+     * @param  string|Expression  $predicate
+     * @param  string|Expression  $object
+     * @return $this
+     */
+    public function whereTriple($subject, $predicate, $object)
+    {
+        if (! $subject instanceof Expression) {
+            $subject = Expression::par($subject);
+        }
+
+        // For predicates: keep as-is if it's a string (prefixes will be expanded by Grammar)
+        // or use the Expression if provided
+        if (! $predicate instanceof Expression) {
+            $predicate = new Expression($predicate);
+        }
+
+        if (! $object instanceof Expression) {
+            $object = Expression::par($object);
+        }
+
+        $this->wheres[] = [
+            'type' => 'Triple',
+            'subject' => $subject,
+            'predicate' => $predicate,
+            'object' => $object,
+            'boolean' => 'and',
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Add a BIND expression to the query.
+     *
+     * @param  string|Expression  $expression  The SPARQL expression to bind
+     * @param  string  $variable  Variable name (with or without ?)
+     * @return $this
+     */
+    public function bind($expression, $variable)
+    {
+        // Don't wrap expression in Expression if it's already a string or Expression
+        // This allows raw SPARQL expressions to pass through
+        if (! $expression instanceof Expression && ! is_string($expression)) {
+            $expression = new Expression($expression, 'raw');
+        } elseif (is_string($expression)) {
+            // Keep string expressions as-is (raw SPARQL)
+            $expression = new Expression($expression, 'raw');
+        }
+
+        // Ensure variable starts with ?
+        if (! str_starts_with($variable, '?')) {
+            $variable = '?' . $variable;
+        }
+
+        $this->binds[] = [
+            'expression' => $expression,
+            'variable' => $variable,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Wrap a URI/IRI for use in queries.
+     *
+     * @param  string  $uri
+     * @return string
+     */
+    protected function wrapUri($uri)
+    {
+        return $this->grammar->wrapUri($uri);
+    }
+
+    /**
      * Force the query to only return distinct results.
      *
      * @return $this
@@ -518,7 +632,14 @@ class Builder
     {
         $groups = Arr::wrap($groups);
         foreach ($groups as $group) {
-            $this->groups[] = $this->pushAttribute($group);
+            // If it's already a variable (starts with ?), use it as-is
+            if (is_string($group) && str_starts_with($group, '?')) {
+                $this->groups[] = Expression::par($group);
+            } elseif ($group instanceof Expression) {
+                $this->groups[] = $group;
+            } else {
+                $this->groups[] = $this->pushAttribute($group);
+            }
         }
 
         return $this;

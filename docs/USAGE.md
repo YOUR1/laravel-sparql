@@ -8,6 +8,7 @@ Comprehensive guide to using Laravel SPARQL for working with RDF triple stores.
 - [Defining Models](#defining-models)
 - [CRUD Operations](#crud-operations)
 - [Querying](#querying)
+  - [Analytical Queries (v1.2.3+)](#analytical-queries-v123)
 - [Relationships](#relationships)
 - [RDF-Specific Features](#rdf-specific-features)
 - [Batch Operations](#batch-operations)
@@ -412,6 +413,118 @@ $results = Person::groupBy('city')
                  ->selectRaw('city, COUNT(*) as total')
                  ->get();
 ```
+
+### Analytical Queries (v1.2.3+)
+
+Build complex analytical queries with custom SELECT expressions, BIND clauses, and computed columns:
+
+#### Basic Language Statistics
+
+Count labels by language in a concept scheme:
+
+```php
+use LinkedData\SPARQL\Query\Expression;
+
+$labelStats = DB::connection('sparql')
+    ->query()
+    ->graph('')
+    ->selectExpression('?language')
+    ->selectExpression('(COUNT(?label) as ?count)')
+    ->whereTriple('?concept', 'skos:inScheme', Expression::iri($schemeUri))
+    ->whereTriple('?concept', 'skos:prefLabel', '?label')
+    ->bind('COALESCE(LANG(?label), "no-lang")', '?language')
+    ->groupBy('?language')
+    ->orderBy('?count', 'desc')
+    ->get();
+```
+
+#### Type Statistics
+
+Count resources by RDF type:
+
+```php
+$typeStats = DB::connection('sparql')
+    ->query()
+    ->selectExpression('?type')
+    ->selectExpression('(COUNT(DISTINCT ?concept) as ?count)')
+    ->whereTriple('?concept', 'skos:inScheme', Expression::iri($schemeUri))
+    ->whereTriple('?concept', 'rdf:type', '?type')
+    ->groupBy('?type')
+    ->get();
+```
+
+#### Complex Queries with HAVING
+
+Find languages with more than 10 labels:
+
+```php
+$popularLanguages = DB::connection('sparql')
+    ->query()
+    ->selectExpression('?language')
+    ->selectExpression('(COUNT(?label) as ?labelCount)')
+    ->selectExpression('(COUNT(DISTINCT ?concept) as ?conceptCount)')
+    ->whereTriple('?concept', 'skos:inScheme', Expression::iri($schemeUri))
+    ->whereTriple('?concept', 'skos:prefLabel', '?label')
+    ->bind('COALESCE(LANG(?label), "no-lang")', '?language')
+    ->groupBy('?language')
+    ->having('?labelCount', '>', 10)
+    ->orderBy('?labelCount', 'desc')
+    ->get();
+```
+
+#### Using DB::raw() for Complex Expressions
+
+```php
+$stats = DB::connection('sparql')
+    ->query()
+    ->selectExpression(DB::raw('(COALESCE(LANG(?label), "no-lang") as ?language)'))
+    ->selectExpression(DB::raw('(COUNT(?label) as ?count)'))
+    ->whereTriple('?concept', 'skos:inScheme', Expression::iri($schemeUri))
+    ->whereTriple('?concept', 'skos:prefLabel', '?label')
+    ->groupBy('?language')
+    ->get();
+```
+
+#### Multiple BIND Expressions
+
+Chain multiple BIND expressions for computed values:
+
+```php
+$results = DB::connection('sparql')
+    ->query()
+    ->selectExpression('?language')
+    ->selectExpression('?category')
+    ->whereTriple('?concept', 'skos:prefLabel', '?label')
+    ->bind('LANG(?label)', '?lang')
+    ->bind('COALESCE(?lang, "no-lang")', '?language')
+    ->bind('IF(STRLEN(?label) > 50, "long", "short")', '?category')
+    ->groupBy('?language', '?category')
+    ->get();
+```
+
+#### Available Methods
+
+**selectExpression($expression)**
+- Add custom SELECT expressions (aggregates, computed values)
+- Supports SPARQL functions: COUNT(), SUM(), AVG(), MIN(), MAX(), CONCAT(), COALESCE(), IF(), etc.
+- Supports `DB::raw()` for complex expressions
+
+**whereTriple($subject, $predicate, $object)**
+- Add explicit triple patterns to WHERE clause
+- More readable than `whereRaw()` for SPARQL patterns
+- Handles namespace expansion automatically (e.g., 'skos:prefLabel')
+- All parameters can be strings or Expression objects
+
+**bind($expression, $variable)**
+- Add BIND expressions for computed values during query execution
+- Chain multiple BIND expressions
+- Variable names can include or exclude the `?` prefix
+
+**groupBy(...$groups)**
+- Enhanced to support raw SPARQL variables (e.g., `?language`)
+- Works seamlessly with BIND expressions and selectExpression()
+
+**Note**: All new analytical query methods maintain full backward compatibility. Existing queries continue to work unchanged.
 
 ## Relationships
 

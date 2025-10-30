@@ -28,6 +28,7 @@ class Grammar extends BaseGrammar
         'from',
         'joins',
         'wheres',
+        'binds',
         'groups',
         'havings',
         'orders',
@@ -261,6 +262,29 @@ class Grammar extends BaseGrammar
         }
 
         $select = $query->distinct ? 'select distinct ' : 'select ';
+
+        // If we have custom SELECT expressions, use them
+        if (! empty($query->selectExpressions)) {
+            $expressions = [];
+            foreach ($query->selectExpressions as $expr) {
+                // Handle Laravel Query Expression (DB::raw())
+                if ($expr instanceof \Illuminate\Database\Query\Expression) {
+                    // Use reflection to access the protected value property
+                    $reflection = new \ReflectionClass($expr);
+                    $property = $reflection->getProperty('value');
+                    $property->setAccessible(true);
+                    $expressions[] = $property->getValue($expr);
+                } elseif ($expr instanceof Expression) {
+                    // Handle SPARQL Expression
+                    $expressions[] = $expr->getValue();
+                } else {
+                    // Handle raw strings
+                    $expressions[] = $expr;
+                }
+            }
+
+            return $select . implode(' ', $expressions) . $this->compileGraph($query);
+        }
 
         return $select . $this->columnize($columns) . $this->compileGraph($query);
     }
@@ -851,6 +875,32 @@ class Grammar extends BaseGrammar
     }
 
     /**
+     * Compile an explicit triple pattern clause.
+     *
+     * @param  array  $where
+     * @return string
+     */
+    protected function whereTriple(Builder $query, $where)
+    {
+        $subject = $this->getValue($where['subject']);
+
+        // Handle predicate - wrap it as a URI if needed
+        if (is_string($where['predicate'])) {
+            $predicate = $this->wrapUri($where['predicate']);
+        } else {
+            $predicate = $this->getValue($where['predicate']);
+            // If it's a string (from Expression), wrap it
+            if (is_string($predicate) && ! str_starts_with($predicate, '?') && ! str_starts_with($predicate, '<')) {
+                $predicate = $this->wrapUri($predicate);
+            }
+        }
+
+        $object = $this->getValue($where['object']);
+
+        return "{$subject} {$predicate} {$object}";
+    }
+
+    /**
      * Compile a where exists clause.
      *
      * @param  array  $where
@@ -978,6 +1028,28 @@ class Grammar extends BaseGrammar
     protected function filterRegex(Builder $query, $where, $filter)
     {
         return sprintf(' REGEX ( %s, ? ) ', $this->wrap($filter['attribute']));
+    }
+
+    /**
+     * Compile BIND expressions.
+     *
+     * @param  array  $binds
+     * @return string
+     */
+    protected function compileBinds(Builder $query, $binds)
+    {
+        if (empty($binds)) {
+            return '';
+        }
+
+        $compiled = [];
+        foreach ($binds as $bind) {
+            $expression = $this->getValue($bind['expression']);
+            $variable = $bind['variable'];
+            $compiled[] = " . BIND({$expression} AS {$variable})";
+        }
+
+        return implode('', $compiled);
     }
 
     /**

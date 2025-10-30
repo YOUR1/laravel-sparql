@@ -12,13 +12,14 @@ Laravel SPARQL brings the power of RDF triple stores to Laravel with an Eloquent
 ### Key Features
 
 - **Familiar Eloquent API** - Use standard Laravel patterns like `where()`, `get()`, `first()`, `save()`, `delete()`
+- **Analytical Queries (v1.2.3+)** - Build complex queries with custom SELECT expressions, BIND clauses, and GROUP BY
 - **Hybrid Approach** - Scalars for single values, arrays for multi-values (no unnecessary Collections)
 - **RDF Extensions** - Language tags, multi-valued properties, and URI mappings when you need them
 - **Batch Operations** - Efficient bulk insert/update/delete operations
 - **Sync Trait** - Easily sync regular Eloquent models to SPARQL endpoints
 - **Multi-Tenancy Support** - Full support for stancl/tenancy with automatic endpoint switching per tenant
 - **No Magic** - Explicit model definitions, no dynamic class generation
-- **Production Ready** - 100% test coverage, optimized for performance
+- **Production Ready** - 514 passing tests, optimized for performance
 
 ## Requirements
 
@@ -125,7 +126,31 @@ $person->save();
 
 // Delete
 $person->delete();
+
+// Analytical queries (v1.2.3+)
+use LinkedData\SPARQL\Query\Expression;
+
+$labelStats = DB::connection('sparql')
+    ->query()
+    ->selectExpression('?language')
+    ->selectExpression('(COUNT(?label) as ?count)')
+    ->whereTriple('?concept', 'skos:inScheme', Expression::iri($schemeUri))
+    ->whereTriple('?concept', 'skos:prefLabel', '?label')
+    ->bind('COALESCE(LANG(?label), "no-lang")', '?language')
+    ->groupBy('?language')
+    ->get();
 ```
+
+## What's New in v1.2.3
+
+**Analytical Query Support** - Build sophisticated SPARQL queries with Laravel's fluent syntax:
+
+- `selectExpression()` - Custom SELECT with aggregates and computed values
+- `whereTriple()` - Explicit triple patterns with namespace support
+- `bind()` - BIND expressions for computed values
+- Enhanced `groupBy()` for SPARQL variables
+
+See [Usage Guide - Analytical Queries](docs/USAGE.md#analytical-queries-v123) for examples.
 
 ## Documentation
 
