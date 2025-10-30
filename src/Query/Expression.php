@@ -109,7 +109,7 @@ class Expression
             case 'literal':
                 // Properly format the literal with datatype/language tag
                 if ($this->value instanceof \EasyRdf\Literal) {
-                    $value = addslashes($this->value->getValue());
+                    $value = \LinkedData\SPARQL\Support\StringHelper::escapeSparqlLiteral($this->value->getValue());
                     $lang = $this->value->getLang();
                     $datatype = $this->value->getDatatype();
 
@@ -127,7 +127,7 @@ class Expression
                 return $this->value->getValue();
 
             case 'string':
-                return sprintf('"%s"', addslashes($this->value));
+                return sprintf('"%s"', \LinkedData\SPARQL\Support\StringHelper::escapeSparqlLiteral($this->value));
 
             case 'iri':
                 $uri = \EasyRdf\RdfNamespace::expand($this->value);
