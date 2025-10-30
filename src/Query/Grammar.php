@@ -239,10 +239,10 @@ class Grammar extends BaseGrammar
         if (str_starts_with($function, 'group_concat_separator_')) {
             $separator = substr($function, strlen('group_concat_separator_'));
 
-            return 'select group_concat(' . $column . '; separator="' . $separator . '") as ?aggregate ' . $this->compileGraph($query);
+            return 'select (group_concat(' . $column . '; separator="' . $separator . '") as ?aggregate) ' . $this->compileGraph($query);
         }
 
-        return 'select ' . $aggregate['function'] . '(' . $column . ') as ?aggregate ' . $this->compileGraph($query);
+        return 'select (' . $aggregate['function'] . '(' . $column . ') as ?aggregate) ' . $this->compileGraph($query);
     }
 
     /**
