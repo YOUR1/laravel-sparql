@@ -32,9 +32,9 @@ jobs:
             health-check-url: 'http://localhost:3030/$/ping'
             docker-service: 'fuseki'
           - triple-store: 'blazegraph'
-            sparql-endpoint: 'http://localhost:9999/bigdata/sparql'
-            sparql-update-endpoint: 'http://localhost:9999/bigdata/sparql'
-            health-check-url: 'http://localhost:9999/bigdata/'
+            sparql-endpoint: 'http://localhost:9090/bigdata/sparql'
+            sparql-update-endpoint: 'http://localhost:9090/bigdata/sparql'
+            health-check-url: 'http://localhost:9090/bigdata/'
             docker-service: 'blazegraph'
           # Uncomment when Laravel 13 is released (Q1 2026)
           # - laravel: '13.*'

@@ -32,7 +32,7 @@ $acmeCorp = Tenant::create([
 // Create tenant with Blazegraph endpoint and authentication
 $widgetsInc = Tenant::create([
     'id' => 'widgets-inc',
-    'sparql_endpoint' => 'http://blazegraph.widgets.example.com:9999/bigdata/sparql',
+    'sparql_endpoint' => 'http://blazegraph.widgets.example.com:9090/bigdata/sparql',
     'sparql_implementation' => 'blazegraph',
     'sparql_auth' => [
         'type' => 'digest',

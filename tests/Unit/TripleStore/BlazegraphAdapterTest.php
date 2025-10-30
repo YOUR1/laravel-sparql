@@ -29,20 +29,20 @@ class BlazegraphAdapterTest extends TestCase
     /** @test */
     public function it_keeps_sparql_endpoint_unchanged(): void
     {
-        $queryEndpoint = 'http://localhost:9999/bigdata/sparql';
+        $queryEndpoint = 'http://localhost:9090/bigdata/sparql';
         $gspEndpoint = $this->adapter->deriveGspEndpoint($queryEndpoint);
 
         // Blazegraph uses the same endpoint for both SPARQL and GSP
-        $this->assertEquals('http://localhost:9999/bigdata/sparql', $gspEndpoint);
+        $this->assertEquals('http://localhost:9090/bigdata/sparql', $gspEndpoint);
     }
 
     /** @test */
     public function it_keeps_namespace_endpoint_unchanged(): void
     {
-        $queryEndpoint = 'http://localhost:9999/blazegraph/namespace/kb/sparql';
+        $queryEndpoint = 'http://localhost:9090/blazegraph/namespace/kb/sparql';
         $gspEndpoint = $this->adapter->deriveGspEndpoint($queryEndpoint);
 
-        $this->assertEquals('http://localhost:9999/blazegraph/namespace/kb/sparql', $gspEndpoint);
+        $this->assertEquals('http://localhost:9090/blazegraph/namespace/kb/sparql', $gspEndpoint);
     }
 
     /** @test */
@@ -57,27 +57,27 @@ class BlazegraphAdapterTest extends TestCase
     /** @test */
     public function it_builds_gsp_url_without_graph(): void
     {
-        $gspEndpoint = 'http://localhost:9999/bigdata/sparql';
+        $gspEndpoint = 'http://localhost:9090/bigdata/sparql';
         $url = $this->adapter->buildGspUrl($gspEndpoint, null);
 
-        $this->assertEquals('http://localhost:9999/bigdata/sparql', $url);
+        $this->assertEquals('http://localhost:9090/bigdata/sparql', $url);
     }
 
     /** @test */
     public function it_builds_gsp_url_with_graph(): void
     {
-        $gspEndpoint = 'http://localhost:9999/bigdata/sparql';
+        $gspEndpoint = 'http://localhost:9090/bigdata/sparql';
         $graph = 'http://example.org/my-graph';
         $url = $this->adapter->buildGspUrl($gspEndpoint, $graph);
 
-        $expectedUrl = 'http://localhost:9999/bigdata/sparql?context-uri=' . urlencode($graph);
+        $expectedUrl = 'http://localhost:9090/bigdata/sparql?context-uri=' . urlencode($graph);
         $this->assertEquals($expectedUrl, $url);
     }
 
     /** @test */
     public function it_uses_context_uri_parameter_name(): void
     {
-        $gspEndpoint = 'http://localhost:9999/bigdata/sparql';
+        $gspEndpoint = 'http://localhost:9090/bigdata/sparql';
         $graph = 'http://example.org/my-graph';
         $url = $this->adapter->buildGspUrl($gspEndpoint, $graph);
 
@@ -89,7 +89,7 @@ class BlazegraphAdapterTest extends TestCase
     /** @test */
     public function it_encodes_graph_uri_in_url(): void
     {
-        $gspEndpoint = 'http://localhost:9999/bigdata/sparql';
+        $gspEndpoint = 'http://localhost:9090/bigdata/sparql';
         $graph = 'http://example.org/my graph with spaces';
         $url = $this->adapter->buildGspUrl($gspEndpoint, $graph);
 
@@ -228,23 +228,23 @@ class BlazegraphAdapterTest extends TestCase
     /** @test */
     public function it_builds_namespace_endpoint_from_base_endpoint(): void
     {
-        $baseEndpoint = 'http://localhost:9999/bigdata/sparql';
+        $baseEndpoint = 'http://localhost:9090/bigdata/sparql';
         $namespace = 'tenant_X_ds_Y';
 
         $namespaceEndpoint = $this->adapter->buildNamespaceEndpoint($baseEndpoint, $namespace);
 
-        $this->assertEquals('http://localhost:9999/bigdata/namespace/tenant_X_ds_Y/sparql', $namespaceEndpoint);
+        $this->assertEquals('http://localhost:9090/bigdata/namespace/tenant_X_ds_Y/sparql', $namespaceEndpoint);
     }
 
     /** @test */
     public function it_replaces_existing_namespace_in_endpoint(): void
     {
-        $baseEndpoint = 'http://localhost:9999/bigdata/namespace/kb/sparql';
+        $baseEndpoint = 'http://localhost:9090/bigdata/namespace/kb/sparql';
         $namespace = 'my_namespace';
 
         $namespaceEndpoint = $this->adapter->buildNamespaceEndpoint($baseEndpoint, $namespace);
 
-        $this->assertEquals('http://localhost:9999/bigdata/namespace/my_namespace/sparql', $namespaceEndpoint);
+        $this->assertEquals('http://localhost:9090/bigdata/namespace/my_namespace/sparql', $namespaceEndpoint);
     }
 
     /** @test */
@@ -261,7 +261,7 @@ class BlazegraphAdapterTest extends TestCase
     /** @test */
     public function it_extracts_namespace_from_endpoint(): void
     {
-        $endpoint = 'http://localhost:9999/bigdata/namespace/tenant_X_ds_Y/sparql';
+        $endpoint = 'http://localhost:9090/bigdata/namespace/tenant_X_ds_Y/sparql';
 
         $namespace = $this->adapter->extractNamespace($endpoint);
 
@@ -271,7 +271,7 @@ class BlazegraphAdapterTest extends TestCase
     /** @test */
     public function it_returns_null_for_non_namespace_endpoint(): void
     {
-        $endpoint = 'http://localhost:9999/bigdata/sparql';
+        $endpoint = 'http://localhost:9090/bigdata/sparql';
 
         $namespace = $this->adapter->extractNamespace($endpoint);
 
@@ -281,8 +281,8 @@ class BlazegraphAdapterTest extends TestCase
     /** @test */
     public function it_checks_if_endpoint_is_namespace_endpoint(): void
     {
-        $namespaceEndpoint = 'http://localhost:9999/bigdata/namespace/my_ns/sparql';
-        $regularEndpoint = 'http://localhost:9999/bigdata/sparql';
+        $namespaceEndpoint = 'http://localhost:9090/bigdata/namespace/my_ns/sparql';
+        $regularEndpoint = 'http://localhost:9090/bigdata/sparql';
 
         $this->assertTrue($this->adapter->isNamespaceEndpoint($namespaceEndpoint));
         $this->assertFalse($this->adapter->isNamespaceEndpoint($regularEndpoint));

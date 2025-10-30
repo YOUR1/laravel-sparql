@@ -111,7 +111,7 @@ composer test:smoke:fuseki
 
 **Blazegraph**:
 ```bash
-# Make sure Blazegraph is running (port 9999)
+# Make sure Blazegraph is running (port 9090)
 docker-compose up -d blazegraph
 
 # Run full suite
@@ -138,7 +138,7 @@ docker-compose up -d
 docker-compose ps
 
 # View Blazegraph UI
-# http://localhost:9999/bigdata/
+# http://localhost:9090/bigdata/
 ```
 
 #### Manual Testing Against Other Implementations

@@ -15,8 +15,8 @@ class BlazegraphQueryBuilderTest extends TestCase
         // Configure for Blazegraph
         config(['database.connections.sparql' => [
             'driver' => 'sparql',
-            'endpoint' => 'http://localhost:9999/bigdata/sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'endpoint' => 'http://localhost:9090/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
             'auth' => ['type' => 'none'],
             'namespaces' => [

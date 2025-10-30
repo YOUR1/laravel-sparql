@@ -22,7 +22,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
             'namespace' => 'tenant_begrippen_ds_abdl',
         ];
@@ -37,7 +37,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -54,7 +54,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -80,7 +80,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -98,7 +98,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
             'namespace' => 'tenant_X_ds_Y',
         ];
@@ -114,7 +114,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -138,7 +138,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -162,7 +162,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -181,7 +181,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -189,12 +189,12 @@ class NamespaceFeaturesTest extends TestCase
         $adapter = $connection->getAdapter();
 
         $namespaceEndpoint = $adapter->buildNamespaceEndpoint(
-            'http://localhost:9999/bigdata/sparql',
+            'http://localhost:9090/bigdata/sparql',
             'tenant_X_ds_Y'
         );
 
         $this->assertEquals(
-            'http://localhost:9999/bigdata/namespace/tenant_X_ds_Y/sparql',
+            'http://localhost:9090/bigdata/namespace/tenant_X_ds_Y/sparql',
             $namespaceEndpoint
         );
     }
@@ -204,7 +204,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -212,7 +212,7 @@ class NamespaceFeaturesTest extends TestCase
         $adapter = $connection->getAdapter();
 
         $namespace = $adapter->extractNamespace(
-            'http://localhost:9999/bigdata/namespace/tenant_X_ds_Y/sparql'
+            'http://localhost:9090/bigdata/namespace/tenant_X_ds_Y/sparql'
         );
 
         $this->assertEquals('tenant_X_ds_Y', $namespace);
@@ -223,7 +223,7 @@ class NamespaceFeaturesTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -231,11 +231,11 @@ class NamespaceFeaturesTest extends TestCase
         $adapter = $connection->getAdapter();
 
         $this->assertTrue($adapter->isNamespaceEndpoint(
-            'http://localhost:9999/bigdata/namespace/my_ns/sparql'
+            'http://localhost:9090/bigdata/namespace/my_ns/sparql'
         ));
 
         $this->assertFalse($adapter->isNamespaceEndpoint(
-            'http://localhost:9999/bigdata/sparql'
+            'http://localhost:9090/bigdata/sparql'
         ));
     }
 }

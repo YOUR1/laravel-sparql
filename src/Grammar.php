@@ -268,7 +268,7 @@ abstract class Grammar
      * Get the value of a raw expression.
      *
      * @param  \Illuminate\Database\Query\Expression|\LinkedData\SPARQL\Query\Expression  $expression
-     * @return string
+     * @return mixed
      */
     public function getValue($expression)
     {
