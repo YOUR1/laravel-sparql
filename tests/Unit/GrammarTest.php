@@ -108,7 +108,7 @@ class GrammarTest extends TestCase
         $sql = $query->toSparql();
 
         $this->assertStringContainsString('OPTIONAL', $sql);
-        $this->assertStringContainsString('foaf:email', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/email>', $sql);
     }
 
     public function test_optional_graph_pattern_with_multiple_conditions(): void
@@ -125,8 +125,8 @@ class GrammarTest extends TestCase
         $sql = $query->toSparql();
 
         $this->assertStringContainsString('OPTIONAL', $sql);
-        $this->assertStringContainsString('foaf:email', $sql);
-        $this->assertStringContainsString('foaf:phone', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/email>', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/phone>', $sql);
     }
 
     // CONSTRUCT query tests
@@ -232,8 +232,8 @@ class GrammarTest extends TestCase
         $sql = $query->toSparql();
 
         $this->assertStringContainsString('ask', strtolower($sql));
-        $this->assertStringContainsString('foaf:name', $sql);
-        $this->assertStringContainsString('foaf:email', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/name>', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/email>', $sql);
     }
 
     public function test_ask_query_with_optional(): void
@@ -307,7 +307,7 @@ class GrammarTest extends TestCase
 
         $this->assertStringContainsString('describe', strtolower($sql));
         $this->assertStringContainsString('where', strtolower($sql));
-        $this->assertStringContainsString('foaf:name', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/name>', $sql);
     }
 
     // Combined features tests
@@ -326,6 +326,6 @@ class GrammarTest extends TestCase
 
         $this->assertStringContainsString('construct', strtolower($sql));
         $this->assertStringContainsString('OPTIONAL', $sql);
-        $this->assertStringContainsString('foaf:email', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/email>', $sql);
     }
 }

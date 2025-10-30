@@ -140,7 +140,7 @@ class Sparql11FeaturesTest extends TestCase
         $sql = $query->toSparql();
 
         $this->assertStringContainsString('MINUS', $sql);
-        $this->assertStringContainsString('foaf:email', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/email>', $sql);
     }
 
     public function test_minus_graph_pattern_with_multiple_conditions(): void
@@ -156,8 +156,8 @@ class Sparql11FeaturesTest extends TestCase
         $sql = $query->toSparql();
 
         $this->assertStringContainsString('MINUS', $sql);
-        $this->assertStringContainsString('foaf:email', $sql);
-        $this->assertStringContainsString('foaf:age', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/email>', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/age>', $sql);
     }
 
     public function test_multiple_minus_patterns(): void
@@ -210,8 +210,8 @@ class Sparql11FeaturesTest extends TestCase
         $sql = $query->toSparql();
 
         $this->assertStringContainsString('SERVICE', $sql);
-        $this->assertStringContainsString('foaf:knows', $sql);
-        $this->assertStringContainsString('foaf:age', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/knows>', $sql);
+        $this->assertStringContainsString('<http://xmlns.com/foaf/0.1/age>', $sql);
     }
 
     // ========================================
