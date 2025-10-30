@@ -439,13 +439,17 @@ class Grammar extends BaseGrammar
                 switch ($where['boolean']) {
                     case 'or':
                         $boolean = 'union';
+                        $needsBraces = true;
                         break;
                     default:
                         $boolean = ' . ';
+                        // Simple triple patterns don't need extra braces
+                        $needsBraces = ! in_array($where['type'], ['Triple', 'Basic', 'Reversed']);
                         break;
                 }
 
-                return $boolean . ' { ' . $this->{"where{$where['type']}"}($query, $where) . ' }';
+                $compiled = $this->{"where{$where['type']}"}($query, $where);
+                return $needsBraces ? $boolean . ' { ' . $compiled . ' }' : $boolean . $compiled;
             }
         })->all();
     }
@@ -461,10 +465,18 @@ class Grammar extends BaseGrammar
     {
         $conjunction = $query instanceof JoinClause ? 'on' : 'WHERE';
 
-        if (count($query->wheres) > 1) {
-            return $conjunction . ' { ' . $this->removeLeadingBoolean(implode(' ', $sql)) . ' }';
+        $whereClauses = $this->removeLeadingBoolean(implode(' ', $sql));
+
+        // Add BIND clauses inside the WHERE block if they exist
+        if (! empty($query->binds)) {
+            $binds = $this->compileBindsForWhere($query, $query->binds);
+            $whereClauses .= $binds;
+        }
+
+        if (count($query->wheres) > 1 || ! empty($query->binds)) {
+            return $conjunction . ' { ' . $whereClauses . ' }';
         } else {
-            return $conjunction . ' ' . $this->removeLeadingBoolean(implode(' ', $sql));
+            return $conjunction . ' ' . $whereClauses;
         }
     }
 
@@ -1031,12 +1043,26 @@ class Grammar extends BaseGrammar
     }
 
     /**
-     * Compile BIND expressions.
+     * Compile BIND expressions (called as a select component).
+     * BIND clauses are now included in the WHERE block, so this returns empty
+     * to avoid duplicating them.
      *
      * @param  array  $binds
      * @return string
      */
     protected function compileBinds(Builder $query, $binds)
+    {
+        // Binds are now compiled inside the WHERE clause by concatenateWhereClauses
+        return '';
+    }
+
+    /**
+     * Compile BIND expressions for inclusion in WHERE clause.
+     *
+     * @param  array  $binds
+     * @return string
+     */
+    protected function compileBindsForWhere(Builder $query, $binds)
     {
         if (empty($binds)) {
             return '';

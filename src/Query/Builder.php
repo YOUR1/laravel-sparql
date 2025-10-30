@@ -511,7 +511,8 @@ class Builder
             // Store the raw Laravel expression directly, not wrapped
             $this->selectExpressions[] = $expression;
         } elseif (! $expression instanceof Expression) {
-            $expression = new Expression($expression);
+            // Treat as raw expression to avoid automatic quoting
+            $expression = Expression::raw($expression);
             $this->selectExpressions[] = $expression;
         } else {
             $this->selectExpressions[] = $expression;
@@ -534,10 +535,10 @@ class Builder
             $subject = Expression::par($subject);
         }
 
-        // For predicates: keep as-is if it's a string (prefixes will be expanded by Grammar)
-        // or use the Expression if provided
+        // For predicates: treat as class name (will be expanded by Grammar)
+        // Class type preserves namespace prefixes without quoting
         if (! $predicate instanceof Expression) {
-            $predicate = new Expression($predicate);
+            $predicate = Expression::cls($predicate);
         }
 
         if (! $object instanceof Expression) {
