@@ -564,12 +564,9 @@ class Builder
      */
     public function bind($expression, $variable)
     {
-        // Don't wrap expression in Expression if it's already a string or Expression
-        // This allows raw SPARQL expressions to pass through
-        if (! $expression instanceof Expression && ! is_string($expression)) {
-            $expression = new Expression($expression, 'raw');
-        } elseif (is_string($expression)) {
-            // Keep string expressions as-is (raw SPARQL)
+        // Don't wrap expression in Expression if it's already an Expression
+        // Convert strings and other values to Expression objects
+        if (! $expression instanceof Expression) {
             $expression = new Expression($expression, 'raw');
         }
 
