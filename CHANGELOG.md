@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.4] - 2025-10-30
+## [1.2.4/5/6] - 2025-10-30
 
 ### Fixed
 - **Unicode Character Encoding in N-Triples** - Fixed corruption of non-ASCII characters (accented letters, special characters) when syncing data to triple stores like Blazegraph. The issue occurred because some triple stores don't properly respect the `charset=utf-8` parameter in Content-Type headers and interpret UTF-8 data as ISO-8859-1 (Latin-1) by default.
