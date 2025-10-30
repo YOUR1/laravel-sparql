@@ -216,16 +216,15 @@ jobs:
       - name: Check code style for badge
         id: pint-check
         run: |
-          vendor/bin/pint src --test > pint-output.txt 2>&1 || true
           if vendor/bin/pint src --test; then
             echo "result=passing" >> $GITHUB_OUTPUT
           else
             echo "result=failing" >> $GITHUB_OUTPUT
           fi
+        continue-on-error: true
 
       - name: Generate Code Style Badge
         run: |
-          mkdir -p output
           if [ "${{ steps.pint-check.outputs.result }}" = "passing" ]; then
             curl -o output/codestyle.svg "https://img.shields.io/badge/code%20style-passing-brightgreen"
           else
