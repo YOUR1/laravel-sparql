@@ -73,4 +73,73 @@ interface TripleStoreAdapter
      * @return array<string, string> Key-value pairs of optimization hints
      */
     public function getQueryHints(): array;
+
+    /**
+     * Check if this adapter supports namespaces.
+     *
+     * @return bool True if the implementation supports namespace-based isolation
+     */
+    public function supportsNamespaces(): bool;
+
+    /**
+     * Build a namespace-aware endpoint URL.
+     *
+     * For implementations that support namespaces (e.g., Blazegraph),
+     * this modifies the endpoint to target a specific namespace.
+     *
+     * @param  string  $baseEndpoint  The base endpoint URL
+     * @param  string  $namespace  The namespace name
+     * @return string The namespace-specific endpoint URL
+     */
+    public function buildNamespaceEndpoint(string $baseEndpoint, string $namespace): string;
+
+    /**
+     * Extract namespace from an endpoint URL.
+     *
+     * @param  string  $endpoint  The endpoint URL
+     * @return string|null The namespace name, or null if not a namespace URL
+     */
+    public function extractNamespace(string $endpoint): ?string;
+
+    /**
+     * Create a namespace in the triple store.
+     *
+     * The $properties array allows customization of namespace behavior.
+     * Available properties are implementation-specific.
+     *
+     * For implementations without namespace support, this is a no-op.
+     *
+     * @param  string  $baseEndpoint  The base endpoint URL
+     * @param  \MadBob\EasyRDFonGuzzle\HttpClient  $httpClient  The HTTP client
+     * @param  string  $namespace  The namespace name
+     * @param  array  $properties  Optional implementation-specific namespace properties
+     * @return bool True if created or already exists
+     *
+     * @throws \RuntimeException If namespace creation fails
+     *
+     * @see BlazegraphAdapter::createNamespace() For Blazegraph-specific property options
+     */
+    public function createNamespace(string $baseEndpoint, $httpClient, string $namespace, array $properties = []): bool;
+
+    /**
+     * Delete a namespace from the triple store.
+     *
+     * @param  string  $baseEndpoint  The base endpoint URL
+     * @param  \MadBob\EasyRDFonGuzzle\HttpClient  $httpClient  The HTTP client
+     * @param  string  $namespace  The namespace name
+     * @return bool True if deleted or doesn't exist
+     *
+     * @throws \RuntimeException If namespace deletion fails
+     */
+    public function deleteNamespace(string $baseEndpoint, $httpClient, string $namespace): bool;
+
+    /**
+     * Check if a namespace exists in the triple store.
+     *
+     * @param  string  $baseEndpoint  The base endpoint URL
+     * @param  \MadBob\EasyRDFonGuzzle\HttpClient  $httpClient  The HTTP client
+     * @param  string  $namespace  The namespace name
+     * @return bool True if exists
+     */
+    public function namespaceExists(string $baseEndpoint, $httpClient, string $namespace): bool;
 }

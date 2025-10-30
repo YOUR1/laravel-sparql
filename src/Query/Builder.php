@@ -68,6 +68,13 @@ class Builder
     public $graph = null;
 
     /**
+     * The Blazegraph namespace for this query.
+     *
+     * @var string|null
+     */
+    protected $namespace = null;
+
+    /**
      * The type of query (select, construct, ask, describe).
      *
      * @var string
@@ -294,6 +301,30 @@ class Builder
         }
 
         return $prop;
+    }
+
+    /**
+     * Set the Blazegraph namespace for this query.
+     *
+     * @param  string  $namespace  The Blazegraph namespace
+     * @return $this
+     */
+    public function namespace(string $namespace): static
+    {
+        $this->namespace = $namespace;
+
+        // Also set on connection for this query
+        $this->connection->namespace($namespace);
+
+        return $this;
+    }
+
+    /**
+     * Get the Blazegraph namespace for this query.
+     */
+    public function getNamespace(): ?string
+    {
+        return $this->namespace;
     }
 
     /**

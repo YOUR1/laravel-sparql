@@ -66,4 +66,64 @@ abstract class AbstractAdapter implements TripleStoreAdapter
     {
         return preg_replace('~/(sparql|update|query|data)/?$~', '', $endpoint);
     }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Default: most implementations do not support namespaces.
+     */
+    public function supportsNamespaces(): bool
+    {
+        return false;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Default: return the endpoint unchanged (no namespace support).
+     */
+    public function buildNamespaceEndpoint(string $baseEndpoint, string $namespace): string
+    {
+        return $baseEndpoint;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Default: return null (no namespace support).
+     */
+    public function extractNamespace(string $endpoint): ?string
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Default: no-op for implementations without namespace support.
+     */
+    public function createNamespace(string $baseEndpoint, $httpClient, string $namespace, array $properties = []): bool
+    {
+        return true; // No-op for non-namespace implementations
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Default: no-op for implementations without namespace support.
+     */
+    public function deleteNamespace(string $baseEndpoint, $httpClient, string $namespace): bool
+    {
+        return true; // No-op for non-namespace implementations
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Default: always return true for implementations without namespace support.
+     */
+    public function namespaceExists(string $baseEndpoint, $httpClient, string $namespace): bool
+    {
+        return true; // No-op for non-namespace implementations
+    }
 }

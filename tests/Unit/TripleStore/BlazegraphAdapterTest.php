@@ -224,4 +224,67 @@ class BlazegraphAdapterTest extends TestCase
 
         $this->assertTrue($isSuccess);
     }
+
+    /** @test */
+    public function it_builds_namespace_endpoint_from_base_endpoint(): void
+    {
+        $baseEndpoint = 'http://localhost:9999/bigdata/sparql';
+        $namespace = 'tenant_X_ds_Y';
+
+        $namespaceEndpoint = $this->adapter->buildNamespaceEndpoint($baseEndpoint, $namespace);
+
+        $this->assertEquals('http://localhost:9999/bigdata/namespace/tenant_X_ds_Y/sparql', $namespaceEndpoint);
+    }
+
+    /** @test */
+    public function it_replaces_existing_namespace_in_endpoint(): void
+    {
+        $baseEndpoint = 'http://localhost:9999/bigdata/namespace/kb/sparql';
+        $namespace = 'my_namespace';
+
+        $namespaceEndpoint = $this->adapter->buildNamespaceEndpoint($baseEndpoint, $namespace);
+
+        $this->assertEquals('http://localhost:9999/bigdata/namespace/my_namespace/sparql', $namespaceEndpoint);
+    }
+
+    /** @test */
+    public function it_handles_custom_paths_in_namespace_endpoint(): void
+    {
+        $baseEndpoint = 'http://example.com/my/custom/blazegraph/sparql';
+        $namespace = 'test_namespace';
+
+        $namespaceEndpoint = $this->adapter->buildNamespaceEndpoint($baseEndpoint, $namespace);
+
+        $this->assertEquals('http://example.com/my/custom/blazegraph/namespace/test_namespace/sparql', $namespaceEndpoint);
+    }
+
+    /** @test */
+    public function it_extracts_namespace_from_endpoint(): void
+    {
+        $endpoint = 'http://localhost:9999/bigdata/namespace/tenant_X_ds_Y/sparql';
+
+        $namespace = $this->adapter->extractNamespace($endpoint);
+
+        $this->assertEquals('tenant_X_ds_Y', $namespace);
+    }
+
+    /** @test */
+    public function it_returns_null_for_non_namespace_endpoint(): void
+    {
+        $endpoint = 'http://localhost:9999/bigdata/sparql';
+
+        $namespace = $this->adapter->extractNamespace($endpoint);
+
+        $this->assertNull($namespace);
+    }
+
+    /** @test */
+    public function it_checks_if_endpoint_is_namespace_endpoint(): void
+    {
+        $namespaceEndpoint = 'http://localhost:9999/bigdata/namespace/my_ns/sparql';
+        $regularEndpoint = 'http://localhost:9999/bigdata/sparql';
+
+        $this->assertTrue($this->adapter->isNamespaceEndpoint($namespaceEndpoint));
+        $this->assertFalse($this->adapter->isNamespaceEndpoint($regularEndpoint));
+    }
 }

@@ -48,6 +48,13 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
     protected $connection;
 
     /**
+     * The Blazegraph namespace for this model.
+     *
+     * @var string|null
+     */
+    protected $namespace = null;
+
+    /**
      * The table associated with the model.
      *
      * @var string
@@ -1186,7 +1193,34 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
      */
     public function newQuery()
     {
-        return $this->registerGlobalScopes($this->newQueryWithoutScopes());
+        $builder = $this->registerGlobalScopes($this->newQueryWithoutScopes());
+
+        // Apply namespace if set
+        if ($this->namespace !== null) {
+            $builder->namespace($this->namespace);
+        }
+
+        return $builder;
+    }
+
+    /**
+     * Set the Blazegraph namespace for this model.
+     *
+     * @return $this
+     */
+    public function setNamespace(string $namespace): static
+    {
+        $this->namespace = $namespace;
+
+        return $this;
+    }
+
+    /**
+     * Get the Blazegraph namespace for this model.
+     */
+    public function getNamespace(): ?string
+    {
+        return $this->namespace;
     }
 
     /**
