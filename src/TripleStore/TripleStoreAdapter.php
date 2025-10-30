@@ -23,7 +23,7 @@ interface TripleStoreAdapter
      *
      * Examples:
      * - Fuseki: http://localhost:3030/test/sparql -> http://localhost:3030/test
-     * - Blazegraph: http://localhost:9999/bigdata/sparql -> http://localhost:9999/bigdata/sparql
+     * - Blazegraph: http://localhost:9090/bigdata/sparql -> http://localhost:9090/bigdata/sparql
      * - Generic: http://example.com/sparql -> http://example.com/data
      *
      * @param  string  $queryEndpoint  The SPARQL query endpoint URL

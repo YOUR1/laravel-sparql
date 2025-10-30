@@ -785,7 +785,7 @@ See [Blazegraph Configuration Options](https://github.com/blazegraph/database/wi
 // Option 1: Set default namespace in config
 'sparql' => [
     'driver' => 'sparql',
-    'host' => 'http://localhost:9999/bigdata/sparql',
+    'host' => 'http://localhost:9090/bigdata/sparql',
     'implementation' => 'blazegraph',
     'namespace' => 'my_namespace',  // All queries will use this namespace
 ],
@@ -793,14 +793,14 @@ See [Blazegraph Configuration Options](https://github.com/blazegraph/database/wi
 // Option 2: Create multiple connections for different namespaces
 'sparql_tenant_a' => [
     'driver' => 'sparql',
-    'host' => 'http://localhost:9999/bigdata/sparql',
+    'host' => 'http://localhost:9090/bigdata/sparql',
     'implementation' => 'blazegraph',
     'namespace' => 'tenant_a',
 ],
 
 'sparql_tenant_b' => [
     'driver' => 'sparql',
-    'host' => 'http://localhost:9999/bigdata/sparql',
+    'host' => 'http://localhost:9090/bigdata/sparql',
     'implementation' => 'blazegraph',
     'namespace' => 'tenant_b',
 ],
@@ -901,7 +901,7 @@ foreach ($namespaces as $ns) {
 - Namespace support is **Blazegraph-specific** and will be ignored for other triple stores (Fuseki, Virtuoso, etc.)
 - Namespaces provide **complete data isolation** - queries in one namespace cannot see data in another
 - Namespace names must contain only **alphanumeric characters, underscores, and hyphens**
-- Blazegraph endpoints are automatically converted: `http://localhost:9999/bigdata/sparql` → `http://localhost:9999/bigdata/namespace/NAMESPACE/sparql`
+- Blazegraph endpoints are automatically converted: `http://localhost:9090/bigdata/sparql` → `http://localhost:9090/bigdata/namespace/NAMESPACE/sparql`
 
 ### Raw SPARQL Queries
 

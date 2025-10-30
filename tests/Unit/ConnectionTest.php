@@ -76,7 +76,7 @@ class ConnectionTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
             'namespace' => 'test_namespace',
         ];
@@ -90,7 +90,7 @@ class ConnectionTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -104,7 +104,7 @@ class ConnectionTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -118,7 +118,7 @@ class ConnectionTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -132,7 +132,7 @@ class ConnectionTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 
@@ -152,7 +152,7 @@ class ConnectionTest extends TestCase
     {
         $config = [
             'driver' => 'sparql',
-            'host' => 'http://localhost:9999/bigdata/sparql',
+            'host' => 'http://localhost:9090/bigdata/sparql',
             'implementation' => 'blazegraph',
         ];
 

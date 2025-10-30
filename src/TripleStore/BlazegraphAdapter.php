@@ -29,8 +29,8 @@ class BlazegraphAdapter extends AbstractAdapter
      * Blazegraph uses the same endpoint for both SPARQL and GSP.
      *
      * Examples:
-     * - http://localhost:9999/bigdata/sparql -> http://localhost:9999/bigdata/sparql (unchanged)
-     * - http://localhost:9999/blazegraph/namespace/kb/sparql -> http://localhost:9999/blazegraph/namespace/kb/sparql
+     * - http://localhost:9090/bigdata/sparql -> http://localhost:9090/bigdata/sparql (unchanged)
+     * - http://localhost:9090/blazegraph/namespace/kb/sparql -> http://localhost:9090/blazegraph/namespace/kb/sparql
      */
     public function deriveGspEndpoint(string $queryEndpoint): string
     {
@@ -116,9 +116,9 @@ class BlazegraphAdapter extends AbstractAdapter
      * {@inheritdoc}
      *
      * Converts:
-     *   http://localhost:9999/bigdata/sparql
+     *   http://localhost:9090/bigdata/sparql
      * To:
-     *   http://localhost:9999/bigdata/namespace/NAMESPACE/sparql
+     *   http://localhost:9090/bigdata/namespace/NAMESPACE/sparql
      */
     public function buildNamespaceEndpoint(string $baseEndpoint, string $namespace): string
     {

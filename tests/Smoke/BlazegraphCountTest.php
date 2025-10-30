@@ -34,6 +34,39 @@ class BlazegraphCountTest extends IntegrationTestCase
 
         // Reconnect with new config
         $this->connection = app('db')->connection('sparql');
+
+        // Create test namespace if it doesn't exist
+        $namespace = env('SPARQL_NAMESPACE', 'tenant_begrippen_ds_hunze-en-aas');
+        $this->connection->createNamespace($namespace);
+
+        // Clear test namespace before each test
+        $this->clearTestNamespace($namespace);
+    }
+
+    protected function tearDown(): void
+    {
+        // Clear test namespace after each test
+        $namespace = env('SPARQL_NAMESPACE', 'tenant_begrippen_ds_hunze-en-aas');
+        $this->clearTestNamespace($namespace);
+
+        parent::tearDown();
+    }
+
+    /**
+     * Clear all triples from the test namespace.
+     */
+    protected function clearTestNamespace(string $namespace): void
+    {
+        try {
+            // Switch to test namespace and clear it
+            $this->connection->withinNamespace($namespace, function ($query) use ($namespace) {
+                // Use DELETE WHERE instead of CLEAR to be more compatible
+                $deleteQuery = 'DELETE WHERE { ?s ?p ?o }';
+                $this->connection->statement($deleteQuery);
+            });
+        } catch (\Exception $e) {
+            // If namespace doesn't exist yet or is already empty, that's fine
+        }
     }
 
     /** @test */

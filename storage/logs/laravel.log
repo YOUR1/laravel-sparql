@@ -1,0 +1,24 @@
+[2025-10-28 07:54:07] production.ERROR: Undefined array key "database" {"exception":"[object] (ErrorException(code: 0): Undefined array key \"database\" at /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:76)
+[stacktrace]
+#0 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(258): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->handleError(2, 'Undefined array...', '/Users/youri/De...', 76)
+#1 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php(76): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->{closure:Illuminate\\Foundation\\Bootstrap\\HandleExceptions::forwardsTo():257}(2, 'Undefined array...', '/Users/youri/De...', 76)
+#2 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php(50): Illuminate\\Database\\Connectors\\ConnectionFactory->createSingleConnection(Array)
+#3 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(203): Illuminate\\Database\\Connectors\\ConnectionFactory->make(Array, 'sparql')
+#4 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(102): Illuminate\\Database\\DatabaseManager->makeConnection('sparql')
+#5 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(330): Illuminate\\Database\\DatabaseManager->connection('sparql')
+#6 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php(363): Illuminate\\Database\\DatabaseManager->reconnect('sparql')
+#7 /Users/youri/Development/Laravel/laravel-sparql/test-expression-binding.php(78): Illuminate\\Support\\Facades\\Facade::__callStatic('reconnect', Array)
+#8 {main}
+"} 
+[2025-10-28 07:59:47] production.ERROR: Undefined array key "database" {"exception":"[object] (ErrorException(code: 0): Undefined array key \"database\" at /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:76)
+[stacktrace]
+#0 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(258): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->handleError(2, 'Undefined array...', '/Users/youri/De...', 76)
+#1 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php(76): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->{closure:Illuminate\\Foundation\\Bootstrap\\HandleExceptions::forwardsTo():257}(2, 'Undefined array...', '/Users/youri/De...', 76)
+#2 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php(50): Illuminate\\Database\\Connectors\\ConnectionFactory->createSingleConnection(Array)
+#3 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(203): Illuminate\\Database\\Connectors\\ConnectionFactory->make(Array, 'sparql')
+#4 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(102): Illuminate\\Database\\DatabaseManager->makeConnection('sparql')
+#5 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(489): Illuminate\\Database\\DatabaseManager->connection()
+#6 /Users/youri/Development/Laravel/laravel-sparql/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php(363): Illuminate\\Database\\DatabaseManager->__call('getQueryLog', Array)
+#7 /Users/youri/Development/Laravel/laravel-sparql/test-expression-binding.php(171): Illuminate\\Support\\Facades\\Facade::__callStatic('getQueryLog', Array)
+#8 {main}
+"} 

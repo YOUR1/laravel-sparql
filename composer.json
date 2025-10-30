@@ -75,9 +75,9 @@
     "test:smoke": "vendor/bin/phpunit tests/Smoke",
     "test:coverage": "vendor/bin/phpunit --configuration phpunit.coverage.xml",
     "test:fuseki": "SPARQL_IMPLEMENTATION=fuseki vendor/bin/phpunit",
-    "test:blazegraph": "SPARQL_ENDPOINT=http://localhost:9999/bigdata/sparql SPARQL_UPDATE_ENDPOINT=http://localhost:9999/bigdata/sparql SPARQL_IMPLEMENTATION=blazegraph vendor/bin/phpunit",
+    "test:blazegraph": "SPARQL_ENDPOINT=http://localhost:9090/bigdata/sparql SPARQL_UPDATE_ENDPOINT=http://localhost:9090/bigdata/sparql SPARQL_IMPLEMENTATION=blazegraph vendor/bin/phpunit",
     "test:smoke:fuseki": "SPARQL_IMPLEMENTATION=fuseki vendor/bin/phpunit tests/Smoke",
-    "test:smoke:blazegraph": "SPARQL_ENDPOINT=http://localhost:9999/bigdata/sparql SPARQL_UPDATE_ENDPOINT=http://localhost:9999/bigdata/sparql SPARQL_IMPLEMENTATION=blazegraph vendor/bin/phpunit tests/Smoke",
+    "test:smoke:blazegraph": "SPARQL_ENDPOINT=http://localhost:9090/bigdata/sparql SPARQL_UPDATE_ENDPOINT=http://localhost:9090/bigdata/sparql SPARQL_IMPLEMENTATION=blazegraph vendor/bin/phpunit tests/Smoke",
     "test:smoke:all": [
       "@test:smoke:fuseki",
       "@test:smoke:blazegraph"
