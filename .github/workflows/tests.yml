@@ -206,12 +206,12 @@ jobs:
           SPARQL_IMPLEMENTATION: fuseki
           XDEBUG_MODE: coverage
 
-      - name: PHPUnit Coverage Badge
+      - name: Make code coverage badge
         uses: timkrase/phpunit-coverage-badge@v1.2.1
         with:
           coverage_badge_path: output/coverage.svg
           push_badge: false
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          report: coverage/clover.xml
 
       - name: Check code style for badge
         id: pint-check
@@ -232,13 +232,14 @@ jobs:
             curl -o output/codestyle.svg "https://img.shields.io/badge/code%20style-failing-red"
           fi
 
-      - name: Commit badges
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add output/*.svg
-          git diff --staged --quiet || git commit -m "Update coverage and code style badges"
-          git push
+      - name: Git push to image-data branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_dir: ./output
+          publish_branch: image-data
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
 
       - name: Stop Fuseki
         if: always()
