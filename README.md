@@ -2,7 +2,9 @@
 
 A lean, production-ready **Laravel Eloquent adapter for SPARQL triple stores**. Query and manage RDF data using familiar Laravel patterns.
 
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests)
+[![Tests](https://github.com/your1/laravel-sparql/actions/workflows/tests.yml/badge.svg)](https://github.com/your1/laravel-sparql/actions/workflows/tests.yml)
+[![Coverage](https://raw.githubusercontent.com/your1/laravel-sparql/master/output/coverage.svg)](https://github.com/your1/laravel-sparql/actions/workflows/tests.yml)
+[![Code Style](https://raw.githubusercontent.com/your1/laravel-sparql/master/output/codestyle.svg)](https://github.com/your1/laravel-sparql/actions/workflows/tests.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Overview

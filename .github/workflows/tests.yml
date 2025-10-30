@@ -148,3 +148,98 @@ jobs:
 
       - name: Run static analysis (PHPStan)
         run: composer analyse
+
+  coverage:
+    runs-on: ubuntu-latest
+    name: Coverage & Code Style
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: xdebug
+
+      - name: Setup Docker Compose
+        run: |
+          docker --version
+          docker compose version
+
+      - name: Start Fuseki
+        run: |
+          echo "🚀 Starting Fuseki..."
+          docker compose up -d fuseki
+
+          echo "⏳ Waiting for Fuseki to be ready..."
+          timeout=120
+          elapsed=0
+          until curl -f http://localhost:3030/$/ping 2>/dev/null || [ $elapsed -ge $timeout ]; do
+            sleep 3
+            elapsed=$((elapsed + 3))
+            echo "Waiting for Fuseki... ($elapsed/$timeout seconds)"
+          done
+
+          if [ $elapsed -ge $timeout ]; then
+            echo "❌ Fuseki failed to start within $timeout seconds"
+            docker compose logs fuseki
+            exit 1
+          fi
+
+          echo "✅ Fuseki is ready!"
+
+      - name: Install dependencies
+        run: composer update --prefer-stable --prefer-dist --no-interaction
+
+      - name: Execute tests with coverage
+        run: composer test:coverage
+        env:
+          SPARQL_ENDPOINT: http://localhost:3030/test/sparql
+          SPARQL_UPDATE_ENDPOINT: http://localhost:3030/test/update
+          SPARQL_IMPLEMENTATION: fuseki
+          XDEBUG_MODE: coverage
+
+      - name: PHPUnit Coverage Badge
+        uses: timkrassenberg/phpunit-coverage-badge@v1.2.0
+        with:
+          coverage_badge_path: output/coverage.svg
+          push_badge: true
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check code style for badge
+        id: pint-check
+        run: |
+          vendor/bin/pint src --test > pint-output.txt 2>&1 || true
+          if vendor/bin/pint src --test; then
+            echo "result=passing" >> $GITHUB_OUTPUT
+          else
+            echo "result=failing" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate Code Style Badge
+        run: |
+          mkdir -p output
+          if [ "${{ steps.pint-check.outputs.result }}" = "passing" ]; then
+            curl -o output/codestyle.svg "https://img.shields.io/badge/code%20style-passing-brightgreen"
+          else
+            curl -o output/codestyle.svg "https://img.shields.io/badge/code%20style-failing-red"
+          fi
+
+      - name: Commit badges
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add output/*.svg
+          git diff --staged --quiet || git commit -m "Update coverage and code style badges"
+          git push
+
+      - name: Stop Fuseki
+        if: always()
+        run: docker compose down -v
