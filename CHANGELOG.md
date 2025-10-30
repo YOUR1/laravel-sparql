@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2025-10-30
+
+### Fixed
+- **Unicode Character Encoding in N-Triples** - Fixed corruption of non-ASCII characters (accented letters, special characters) when syncing data to triple stores like Blazegraph. The issue occurred because some triple stores don't properly respect the `charset=utf-8` parameter in Content-Type headers and interpret UTF-8 data as ISO-8859-1 (Latin-1) by default.
+
+  **Solution**: Following the N-Triples specification, non-ASCII characters (code points > U+007F) are now automatically escaped as Unicode sequences (`\uXXXX` for code points up to U+FFFF, `\UXXXXXXXX` for higher code points). For example, "ruïne" is now serialized as "ru\u00EFne" in N-Triples format.
+
+  **Before**: Characters like ï, ë, ñ, ø would display as corrupted characters (��) in the triple store
+  **After**: All Unicode characters are correctly preserved and displayed
+
+  Files changed:
+  - `src/Support/StringHelper.php`: Updated `escapeSparqlLiteral()` to escape non-ASCII characters as Unicode sequences
+  - `src/Connection.php`: Added `charset=utf-8` to Content-Type header as best practice (though not relied upon)
+
 ## [1.2.3] - 2025-10-30
 
 ### Added

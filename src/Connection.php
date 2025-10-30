@@ -664,6 +664,12 @@ class Connection extends BaseConnection
             $contentType = $this->adapter->getNTriplesContentType();
         }
 
+        // Ensure charset=utf-8 is specified in Content-Type header
+        // This prevents encoding issues when triple store receives UTF-8 data
+        if (strpos($contentType, 'charset') === false) {
+            $contentType .= '; charset=utf-8';
+        }
+
         try {
             \Illuminate\Support\Facades\Log::debug('GSP POST', [
                 'implementation' => $this->adapter->getName(),
