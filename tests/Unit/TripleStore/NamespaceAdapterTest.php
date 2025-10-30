@@ -63,7 +63,7 @@ class NamespaceAdapterTest extends TestCase
     {
         $adapter = new BlazegraphAdapter;
 
-        $namespace = $adapter->extractNamespace('http://localhost:9999/bigdata/namespace/test_ns/sparql');
+        $namespace = $adapter->extractNamespace('http://localhost:9090/bigdata/namespace/test_ns/sparql');
 
         $this->assertEquals('test_ns', $namespace);
     }
@@ -73,7 +73,7 @@ class NamespaceAdapterTest extends TestCase
     {
         $adapter = new BlazegraphAdapter;
 
-        $namespace = $adapter->extractNamespace('http://localhost:9999/bigdata/sparql');
+        $namespace = $adapter->extractNamespace('http://localhost:9090/bigdata/sparql');
 
         $this->assertNull($namespace);
     }
