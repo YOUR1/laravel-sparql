@@ -67,8 +67,19 @@ class Expression
             $this->type = $value->type;
         } else {
             if (! $type) {
+                // Handle special array format from Model::addPropertyValue
+                // Format: ['value' => 'text', 'lang' => 'en', 'datatype' => 'xsd:string']
+                if (is_array($value) && array_key_exists('value', $value)) {
+                    $actualValue = $value['value'];
+                    $lang = $value['lang'] ?? null;
+                    $datatype = $value['datatype'] ?? null;
+
+                    // Create EasyRdf Literal with language tag or datatype
+                    $value = \EasyRdf\Literal::create($actualValue, $lang, $datatype);
+                    $type = 'literal';
+                }
                 // Explicitly handle numeric types
-                if (is_int($value)) {
+                elseif (is_int($value)) {
                     $datatype = \EasyRdf\RdfNamespace::expand('xsd:integer');
                     $value = \EasyRdf\Literal::create($value, null, $datatype);
                     $type = 'literal';
