@@ -2144,10 +2144,10 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
      */
     protected function formatObject($value, bool $forceUri = false): string
     {
-		// Handle Expression objects (must be first to preserve type information)
-		if ( $value instanceof \LinkedData\SPARQL\Query\Expression ) {
-			return $value->getValue();
-		}
+        // Handle Expression objects (must be first to preserve type information)
+        if ($value instanceof \LinkedData\SPARQL\Query\Expression) {
+            return $value->getValue();
+        }
 
         // Handle language-tagged values
         if (is_array($value) && isset($value['value'])) {
