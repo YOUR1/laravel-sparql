@@ -779,25 +779,25 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
         return $this->incrementOrDecrement($column, $amount, $extra, 'increment');
     }
 
-	/**
-	 * Increment the underlying attribute value and sync with original.
-	 *
-	 * @param  string  $column
-	 * @param  float|int  $amount
-	 * @param  array  $extra
-	 * @param  string  $method
-	 * @return void
-	 */
-	protected function incrementOrDecrementAttributeValue($column, $amount, $extra, $method)
-	{
-		$this->{$column} = $this->{$column} + ($method === 'increment' ? $amount : $amount * -1);
+    /**
+     * Increment the underlying attribute value and sync with original.
+     *
+     * @param  string  $column
+     * @param  float|int  $amount
+     * @param  array  $extra
+     * @param  string  $method
+     * @return void
+     */
+    protected function incrementOrDecrementAttributeValue($column, $amount, $extra, $method)
+    {
+        $this->{$column} = $this->{$column} + ($method === 'increment' ? $amount : $amount * -1);
 
-		$this->forceFill($extra);
+        $this->forceFill($extra);
 
-		$this->syncOriginalAttribute($column);
-	}
+        $this->syncOriginalAttribute($column);
+    }
 
-	/**
+    /**
      * Decrement a column's value by a given amount.
      *
      * @param  string  $column
@@ -809,7 +809,7 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
         return $this->incrementOrDecrement($column, $amount, $extra, 'decrement');
     }
 
-	/**
+    /**
      * Run the increment or decrement method on the model.
      *
      * @param  string  $column
