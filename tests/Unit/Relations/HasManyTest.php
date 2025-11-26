@@ -5,6 +5,7 @@ namespace LinkedData\SPARQL\Tests\Unit\Relations;
 use Illuminate\Database\Eloquent\Collection;
 use LinkedData\SPARQL\Eloquent\Model;
 use LinkedData\SPARQL\Eloquent\Relations\HasMany;
+use LinkedData\SPARQL\Query\Expression;
 use LinkedData\SPARQL\Tests\TestCase;
 
 class AuthorModel extends Model
@@ -99,7 +100,9 @@ class HasManyTest extends TestCase
         $post = $relation->make(['foaf:title' => 'Test Post']);
 
         $this->assertInstanceOf(PostModel::class, $post);
-        $this->assertEquals('http://example.org/author1', $post->getAttribute('foaf:author'));
+        $foreignKey = $post->getAttribute('foaf:author');
+        $this->assertInstanceOf(Expression::class, $foreignKey);
+        $this->assertEquals('<http://example.org/author1>', (string) $foreignKey);
     }
 
     public function test_has_many_gets_qualified_foreign_key_name(): void
@@ -147,7 +150,9 @@ class HasManyTest extends TestCase
         // we just verify the foreign key is set correctly
         $relation->setForeignAttributesForCreate($post);
 
-        $this->assertEquals('http://example.org/author1', $post->getAttribute('foaf:author'));
+        $foreignKey = $post->getAttribute('foaf:author');
+        $this->assertInstanceOf(Expression::class, $foreignKey);
+        $this->assertEquals('<http://example.org/author1>', (string) $foreignKey);
     }
 
     public function test_has_many_creates_related_model(): void
@@ -163,7 +168,9 @@ class HasManyTest extends TestCase
 
         $this->assertInstanceOf(PostModel::class, $post);
         $this->assertEquals('New Post', $post->getAttribute('foaf:title'));
-        $this->assertEquals('http://example.org/author1', $post->getAttribute('foaf:author'));
+        $foreignKey = $post->getAttribute('foaf:author');
+        $this->assertInstanceOf(Expression::class, $foreignKey);
+        $this->assertEquals('<http://example.org/author1>', (string) $foreignKey);
     }
 
     public function test_has_many_gets_parent_key(): void
@@ -233,7 +240,9 @@ class HasManyTest extends TestCase
         $instance = $relation->make(['foaf:title' => 'Test']);
 
         $this->assertInstanceOf(PostModel::class, $instance);
-        $this->assertEquals('http://example.org/author1', $instance->getAttribute('foaf:author'));
+        $foreignKey = $instance->getAttribute('foaf:author');
+        $this->assertInstanceOf(Expression::class, $foreignKey);
+        $this->assertEquals('<http://example.org/author1>', (string) $foreignKey);
     }
 
     public function test_has_many_save_many_sets_foreign_keys(): void
@@ -253,8 +262,12 @@ class HasManyTest extends TestCase
         $relation->setForeignAttributesForCreate($post1);
         $relation->setForeignAttributesForCreate($post2);
 
-        $this->assertEquals('http://example.org/author1', $post1->getAttribute('foaf:author'));
-        $this->assertEquals('http://example.org/author1', $post2->getAttribute('foaf:author'));
+        $foreignKey1 = $post1->getAttribute('foaf:author');
+        $foreignKey2 = $post2->getAttribute('foaf:author');
+        $this->assertInstanceOf(Expression::class, $foreignKey1);
+        $this->assertInstanceOf(Expression::class, $foreignKey2);
+        $this->assertEquals('<http://example.org/author1>', (string) $foreignKey1);
+        $this->assertEquals('<http://example.org/author1>', (string) $foreignKey2);
     }
 
     public function test_has_many_builds_dictionary_correctly(): void

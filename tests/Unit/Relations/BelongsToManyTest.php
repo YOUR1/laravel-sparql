@@ -5,6 +5,7 @@ namespace LinkedData\SPARQL\Tests\Unit\Relations;
 use Illuminate\Database\Eloquent\Collection;
 use LinkedData\SPARQL\Eloquent\Model;
 use LinkedData\SPARQL\Eloquent\Relations\BelongsToMany;
+use LinkedData\SPARQL\Query\Expression;
 use LinkedData\SPARQL\Tests\TestCase;
 
 class BelongsToManyUserModel extends Model
@@ -407,8 +408,10 @@ class BelongsToManyTest extends TestCase
         $result = $baseAttachRecord->invoke($relation, 'http://example.org/role1', false);
 
         $this->assertIsArray($result);
-        $this->assertEquals('http://example.org/user1', $result['ex:hasUser']);
-        $this->assertEquals('http://example.org/role1', $result['ex:hasRole']);
+        $this->assertInstanceOf(Expression::class, $result['ex:hasUser']);
+        $this->assertInstanceOf(Expression::class, $result['ex:hasRole']);
+        $this->assertEquals('<http://example.org/user1>', (string) $result['ex:hasUser']);
+        $this->assertEquals('<http://example.org/role1>', (string) $result['ex:hasRole']);
     }
 
     public function test_belongs_to_many_get_existence_compare_key(): void

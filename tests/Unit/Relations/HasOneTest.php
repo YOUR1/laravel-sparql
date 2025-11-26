@@ -5,6 +5,7 @@ namespace LinkedData\SPARQL\Tests\Unit\Relations;
 use Illuminate\Database\Eloquent\Collection;
 use LinkedData\SPARQL\Eloquent\Model;
 use LinkedData\SPARQL\Eloquent\Relations\HasOne;
+use LinkedData\SPARQL\Query\Expression;
 use LinkedData\SPARQL\Tests\TestCase;
 
 class UserModel extends Model
@@ -99,7 +100,9 @@ class HasOneTest extends TestCase
         $profile = $relation->make(['foaf:bio' => 'Test bio']);
 
         $this->assertInstanceOf(ProfileModel::class, $profile);
-        $this->assertEquals('http://example.org/user1', $profile->getAttribute('foaf:user'));
+        $foreignKey = $profile->getAttribute('foaf:user');
+        $this->assertInstanceOf(Expression::class, $foreignKey);
+        $this->assertEquals('<http://example.org/user1>', (string) $foreignKey);
     }
 
     public function test_has_one_gets_qualified_foreign_key_name(): void
@@ -146,7 +149,9 @@ class HasOneTest extends TestCase
         // we just verify the foreign key is set correctly
         $relation->setForeignAttributesForCreate($profile);
 
-        $this->assertEquals('http://example.org/user1', $profile->getAttribute('foaf:user'));
+        $foreignKey = $profile->getAttribute('foaf:user');
+        $this->assertInstanceOf(Expression::class, $foreignKey);
+        $this->assertEquals('<http://example.org/user1>', (string) $foreignKey);
     }
 
     public function test_has_one_creates_related_model(): void

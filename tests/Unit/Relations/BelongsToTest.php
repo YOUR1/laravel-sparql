@@ -5,6 +5,7 @@ namespace LinkedData\SPARQL\Tests\Unit\Relations;
 use Illuminate\Database\Eloquent\Collection;
 use LinkedData\SPARQL\Eloquent\Model;
 use LinkedData\SPARQL\Eloquent\Relations\BelongsTo;
+use LinkedData\SPARQL\Query\Expression;
 use LinkedData\SPARQL\Tests\TestCase;
 
 class ParentModel extends Model
@@ -61,7 +62,9 @@ class BelongsToTest extends TestCase
         $child = new ChildModel;
         $child->organization()->associate($parent);
 
-        $this->assertEquals('http://example.org/org1', $child->getAttribute('foaf:organization'));
+        $foreignKey = $child->getAttribute('foaf:organization');
+        $this->assertInstanceOf(Expression::class, $foreignKey);
+        $this->assertEquals('<http://example.org/org1>', (string) $foreignKey);
         $this->assertSame($parent, $child->getRelation('organization'));
     }
 
@@ -70,8 +73,10 @@ class BelongsToTest extends TestCase
         $child = new ChildModel;
         $child->organization()->associate('http://example.org/org1');
 
-        // After refactor: attributes are scalars/arrays, not Collections
-        $this->assertEquals('http://example.org/org1', $child->getAttribute('foaf:organization'));
+        // Foreign key is now stored as Expression::iri() for proper SPARQL serialization
+        $foreignKey = $child->getAttribute('foaf:organization');
+        $this->assertInstanceOf(Expression::class, $foreignKey);
+        $this->assertEquals('<http://example.org/org1>', (string) $foreignKey);
     }
 
     public function test_belongs_to_dissociates_model(): void
