@@ -345,7 +345,8 @@ class HasMany extends Relation
      */
     public function setForeignAttributesForCreate(Model $model)
     {
-        $model->setAttribute($this->getForeignKeyName(), $this->getParentKey());
+        // Wrap the URI in Expression::iri() so it's stored as an IRI, not a string literal
+        $model->setAttribute($this->getForeignKeyName(), Expression::iri($this->getParentKey()));
     }
 
     /**

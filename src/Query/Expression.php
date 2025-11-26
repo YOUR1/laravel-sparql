@@ -36,6 +36,11 @@ class Expression
             return array_map(fn ($item) => new Expression($item, 'iri'), $string);
         }
 
+        // Handle null/empty values gracefully
+        if ($string === null || $string === '') {
+            throw new \InvalidArgumentException('Expression::iri() requires a non-empty URI string, got: ' . var_export($string, true));
+        }
+
         return new Expression($string, 'iri');
     }
 

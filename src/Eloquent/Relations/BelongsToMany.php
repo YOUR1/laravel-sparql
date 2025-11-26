@@ -585,9 +585,10 @@ class BelongsToMany extends Relation
      */
     protected function baseAttachRecord($id, $timed)
     {
+        // Wrap URIs in Expression::iri() so they're stored as IRIs, not string literals
         $record = [
-            $this->foreignPivotKey => $this->parent->{$this->parentKey},
-            $this->relatedPivotKey => $id,
+            $this->foreignPivotKey => Expression::iri($this->parent->{$this->parentKey}),
+            $this->relatedPivotKey => Expression::iri($id),
         ];
 
         if ($timed) {
@@ -652,7 +653,7 @@ class BelongsToMany extends Relation
 
         $query = $this->newPivotQuery();
 
-        $query->where($this->foreignPivotKey, '=', $this->parent->{$this->parentKey});
+        $query->where($this->foreignPivotKey, '=', Expression::iri($this->parent->{$this->parentKey}));
 
         $query->whereIn($this->relatedPivotKey, array_map(function ($id) {
             return Expression::iri($id);
@@ -842,7 +843,7 @@ class BelongsToMany extends Relation
 
         $query = $this->newPivotQuery();
 
-        $query->where($this->foreignPivotKey, '=', $this->parent->{$this->parentKey});
+        $query->where($this->foreignPivotKey, '=', Expression::iri($this->parent->{$this->parentKey}));
         $query->where($this->relatedPivotKey, '=', Expression::iri($id));
 
         $updated = $query->update($this->castAttributes($attributes));
@@ -863,7 +864,7 @@ class BelongsToMany extends Relation
     protected function isAttached($id)
     {
         return $this->newPivotQuery()
-            ->where($this->foreignPivotKey, '=', $this->parent->{$this->parentKey})
+            ->where($this->foreignPivotKey, '=', Expression::iri($this->parent->{$this->parentKey}))
             ->where($this->relatedPivotKey, '=', Expression::iri($id))
             ->exists();
     }

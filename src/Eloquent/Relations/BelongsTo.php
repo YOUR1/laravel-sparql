@@ -215,7 +215,8 @@ class BelongsTo extends Relation
     {
         $ownerKey = $model instanceof Model ? $model->getAttribute($this->ownerKey) : $model;
 
-        $this->parent->setAttribute($this->foreignKey, $ownerKey);
+        // Wrap the URI in Expression::iri() so it's stored as an IRI, not a string literal
+        $this->parent->setAttribute($this->foreignKey, Expression::iri($ownerKey));
 
         if ($model instanceof Model) {
             $this->parent->setRelation($this->relationName, $model);
