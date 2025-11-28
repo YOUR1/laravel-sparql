@@ -165,7 +165,7 @@ class FusekiAdapter extends AbstractAdapter
             }
 
             $response = $httpClient->request('POST', $adminEndpoint, $options);
-            $statusCode = $response->getStatusCode();
+            $statusCode = $response->getStatus();
 
             return $statusCode >= 200 && $statusCode < 300;
         } catch (\Exception $e) {
@@ -185,7 +185,7 @@ class FusekiAdapter extends AbstractAdapter
 
         try {
             $response = $httpClient->request('DELETE', $adminEndpoint);
-            $statusCode = $response->getStatusCode();
+            $statusCode = $response->getStatus();
 
             return $statusCode >= 200 && $statusCode < 300;
         } catch (\Exception $e) {
@@ -205,7 +205,7 @@ class FusekiAdapter extends AbstractAdapter
 
         try {
             $response = $httpClient->request('GET', $adminEndpoint);
-            $statusCode = $response->getStatusCode();
+            $statusCode = $response->getStatus();
 
             return $statusCode >= 200 && $statusCode < 300;
         } catch (\Exception $e) {
