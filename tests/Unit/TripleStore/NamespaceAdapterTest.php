@@ -21,11 +21,11 @@ class NamespaceAdapterTest extends TestCase
     }
 
     /** @test */
-    public function fuseki_adapter_does_not_support_namespaces(): void
+    public function fuseki_adapter_supports_namespaces(): void
     {
         $adapter = new FusekiAdapter;
 
-        $this->assertFalse($adapter->supportsNamespaces());
+        $this->assertTrue($adapter->supportsNamespaces());
     }
 
     /** @test */
@@ -37,15 +37,25 @@ class NamespaceAdapterTest extends TestCase
     }
 
     /** @test */
-    public function fuseki_adapter_returns_unchanged_endpoint_for_namespace(): void
+    public function fuseki_adapter_builds_namespace_endpoint_correctly(): void
     {
         $adapter = new FusekiAdapter;
         $endpoint = 'http://localhost:3030/test/sparql';
 
         $result = $adapter->buildNamespaceEndpoint($endpoint, 'my_namespace');
 
-        // Fuseki doesn't support namespaces, so it should return the endpoint unchanged
-        $this->assertEquals($endpoint, $result);
+        // Fuseki uses /{dataset}/sparql pattern for namespaces
+        $this->assertEquals('http://localhost:3030/my_namespace/sparql', $result);
+    }
+
+    /** @test */
+    public function fuseki_adapter_extracts_namespace_correctly(): void
+    {
+        $adapter = new FusekiAdapter;
+
+        $namespace = $adapter->extractNamespace('http://localhost:3030/test_dataset/sparql');
+
+        $this->assertEquals('test_dataset', $namespace);
     }
 
     /** @test */
