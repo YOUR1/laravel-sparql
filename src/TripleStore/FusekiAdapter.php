@@ -150,21 +150,21 @@ class FusekiAdapter extends AbstractAdapter
         $dbType = $properties['dbType'] ?? 'tdb2';
 
         try {
-            $options = [
-                'headers' => [
-                    'Content-Type' => 'application/x-www-form-urlencoded',
-                ],
-                'body' => http_build_query([
-                    'dbName' => $namespace,
-                    'dbType' => $dbType,
-                ]),
-            ];
+            // Use EasyRdf HTTP client calling convention
+            $httpClient->resetParameters();
+            $httpClient->setUri($adminEndpoint);
+            $httpClient->setMethod('POST');
+            $httpClient->setHeaders('Content-Type', 'application/x-www-form-urlencoded');
+            $httpClient->setRawData(http_build_query([
+                'dbName' => $namespace,
+                'dbType' => $dbType,
+            ]));
 
             if ($authHeader) {
-                $options['headers']['Authorization'] = $authHeader;
+                $httpClient->setHeaders('Authorization', $authHeader);
             }
 
-            $response = $httpClient->request('POST', $adminEndpoint, $options);
+            $response = $httpClient->request();
             $statusCode = $response->getStatus();
 
             return $statusCode >= 200 && $statusCode < 300;
@@ -184,7 +184,12 @@ class FusekiAdapter extends AbstractAdapter
         $adminEndpoint = $baseUrl . '/$/datasets/' . $namespace;
 
         try {
-            $response = $httpClient->request('DELETE', $adminEndpoint);
+            // Use EasyRdf HTTP client calling convention
+            $httpClient->resetParameters();
+            $httpClient->setUri($adminEndpoint);
+            $httpClient->setMethod('DELETE');
+
+            $response = $httpClient->request();
             $statusCode = $response->getStatus();
 
             return $statusCode >= 200 && $statusCode < 300;
@@ -204,7 +209,12 @@ class FusekiAdapter extends AbstractAdapter
         $adminEndpoint = $baseUrl . '/$/datasets/' . $namespace;
 
         try {
-            $response = $httpClient->request('GET', $adminEndpoint);
+            // Use EasyRdf HTTP client calling convention
+            $httpClient->resetParameters();
+            $httpClient->setUri($adminEndpoint);
+            $httpClient->setMethod('GET');
+
+            $response = $httpClient->request();
             $statusCode = $response->getStatus();
 
             return $statusCode >= 200 && $statusCode < 300;
