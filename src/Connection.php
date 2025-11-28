@@ -412,7 +412,14 @@ class Connection extends BaseConnection
 
         // If no explicit update endpoint, derive from query endpoint
         if ($updateEndpoint === null) {
-            return $this->getEffectiveEndpoint();
+            $queryEndpoint = $this->getEffectiveEndpoint();
+
+            // For Fuseki, the update endpoint is /update instead of /sparql
+            if ($this->adapter->getName() === 'fuseki') {
+                return preg_replace('/\/sparql$/', '/update', $queryEndpoint);
+            }
+
+            return $queryEndpoint;
         }
 
         // If namespace is set and the adapter supports namespaces, modify endpoint
