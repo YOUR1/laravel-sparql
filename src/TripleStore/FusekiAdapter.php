@@ -95,30 +95,37 @@ class FusekiAdapter extends AbstractAdapter
     /**
      * {@inheritdoc}
      *
-     * Fuseki does not support Blazegraph-style namespaces.
-     * Fuseki uses separate datasets, each with their own endpoint,
-     * which should be configured as separate connections instead.
+     * Fuseki supports namespace isolation via datasets.
+     * Each dataset gets its own SPARQL endpoint (/{dataset}/sparql)
+     * and is managed via the Fuseki admin API (/$/datasets).
      */
     public function supportsNamespaces(): bool
     {
-        return false;
+        return true;
     }
 
     /**
      * {@inheritdoc}
      *
      * Build a namespace-specific endpoint for Fuseki.
-     * Fuseki uses /{dataset}/sparql pattern (not /namespace/{ns}/sparql like Blazegraph).
+     * Replaces the dataset name in the URL while preserving the service suffix.
      *
-     * Example: http://localhost:3030/ds/sparql + tenant_test -> http://localhost:3030/tenant_test/sparql
+     * Examples:
+     *   http://localhost:3030/ds/sparql + tenant_test -> http://localhost:3030/tenant_test/sparql
+     *   http://localhost:3030/ds/update + tenant_test -> http://localhost:3030/tenant_test/update
+     *   http://localhost:3030/ds         + tenant_test -> http://localhost:3030/tenant_test
      */
     public function buildNamespaceEndpoint(string $baseEndpoint, string $namespace): string
     {
-        // Extract base URL (host:port)
         $baseUrl = $this->getBaseUrl($baseEndpoint);
 
-        // Build namespace-specific endpoint
-        return $baseUrl . '/' . $namespace . '/sparql';
+        // Extract service suffix (/sparql, /update, /query, /data) if present
+        $suffix = '';
+        if (preg_match('~/(sparql|update|query|data)/?$~', $baseEndpoint, $matches)) {
+            $suffix = '/' . $matches[1];
+        }
+
+        return $baseUrl . '/' . $namespace . $suffix;
     }
 
     /**
@@ -138,37 +145,30 @@ class FusekiAdapter extends AbstractAdapter
      */
     public function createNamespace(string $baseEndpoint, $httpClient, string $namespace, array $properties = []): bool
     {
+        // Check if dataset already exists
+        if ($this->namespaceExists($baseEndpoint, $httpClient, $namespace)) {
+            return true;
+        }
+
         $baseUrl = $this->getBaseUrl($baseEndpoint);
         $adminEndpoint = $baseUrl . '/$/datasets';
-
-        // Get authentication from properties or try to detect from HTTP client config
-        $authHeader = null;
-        if (isset($properties['username']) && isset($properties['password'])) {
-            $authHeader = 'Basic ' . base64_encode($properties['username'] . ':' . $properties['password']);
-        }
 
         // Default to TDB2 persistent storage
         $dbType = $properties['dbType'] ?? 'tdb2';
 
         try {
-            // Use EasyRdf HTTP client calling convention
-            $httpClient->resetParameters();
             $httpClient->setUri($adminEndpoint);
-            $httpClient->setMethod('POST');
             $httpClient->setHeaders('Content-Type', 'application/x-www-form-urlencoded');
             $httpClient->setRawData(http_build_query([
                 'dbName' => $namespace,
                 'dbType' => $dbType,
             ]));
 
-            if ($authHeader) {
-                $httpClient->setHeaders('Authorization', $authHeader);
-            }
-
-            $response = $httpClient->request();
+            $response = $httpClient->request('POST');
             $statusCode = $response->getStatus();
 
-            return $statusCode >= 200 && $statusCode < 300;
+            // 200 = created, 409 = already exists (both are OK)
+            return ($statusCode >= 200 && $statusCode < 300) || $statusCode === 409;
         } catch (\Exception $e) {
             return false;
         }
@@ -185,15 +185,13 @@ class FusekiAdapter extends AbstractAdapter
         $adminEndpoint = $baseUrl . '/$/datasets/' . $namespace;
 
         try {
-            // Use EasyRdf HTTP client calling convention
-            $httpClient->resetParameters();
             $httpClient->setUri($adminEndpoint);
-            $httpClient->setMethod('DELETE');
 
-            $response = $httpClient->request();
+            $response = $httpClient->request('DELETE');
             $statusCode = $response->getStatus();
 
-            return $statusCode >= 200 && $statusCode < 300;
+            // 200 = deleted, 404 = doesn't exist (both are OK)
+            return ($statusCode >= 200 && $statusCode < 300) || $statusCode === 404;
         } catch (\Exception $e) {
             return false;
         }
@@ -210,12 +208,9 @@ class FusekiAdapter extends AbstractAdapter
         $adminEndpoint = $baseUrl . '/$/datasets/' . $namespace;
 
         try {
-            // Use EasyRdf HTTP client calling convention
-            $httpClient->resetParameters();
             $httpClient->setUri($adminEndpoint);
-            $httpClient->setMethod('GET');
 
-            $response = $httpClient->request();
+            $response = $httpClient->request('GET');
             $statusCode = $response->getStatus();
 
             return $statusCode >= 200 && $statusCode < 300;
