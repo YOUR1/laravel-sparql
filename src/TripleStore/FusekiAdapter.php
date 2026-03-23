@@ -95,12 +95,13 @@ class FusekiAdapter extends AbstractAdapter
     /**
      * {@inheritdoc}
      *
-     * Fuseki supports multiple datasets which function like namespaces.
-     * Each dataset has its own /sparql endpoint.
+     * Fuseki does not support Blazegraph-style namespaces.
+     * Fuseki uses separate datasets, each with their own endpoint,
+     * which should be configured as separate connections instead.
      */
     public function supportsNamespaces(): bool
     {
-        return true;
+        return false;
     }
 
     /**

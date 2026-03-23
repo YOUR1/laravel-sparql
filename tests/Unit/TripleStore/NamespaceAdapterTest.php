@@ -21,11 +21,11 @@ class NamespaceAdapterTest extends TestCase
     }
 
     /** @test */
-    public function fuseki_adapter_supports_namespaces(): void
+    public function fuseki_adapter_does_not_support_namespaces(): void
     {
         $adapter = new FusekiAdapter;
 
-        $this->assertTrue($adapter->supportsNamespaces());
+        $this->assertFalse($adapter->supportsNamespaces());
     }
 
     /** @test */
