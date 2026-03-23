@@ -658,8 +658,8 @@ class Connection extends BaseConnection
      */
     public function postGraphStoreData(string $rdfData, string $contentType, ?string $graph = null): bool
     {
-        // Use adapter to derive GSP endpoint
-        $queryEndpoint = $this->config['host'];
+        // Use adapter to derive GSP endpoint (namespace-aware)
+        $queryEndpoint = $this->getEffectiveEndpoint();
         $gspEndpoint = $this->adapter->deriveGspEndpoint($queryEndpoint);
 
         // Use adapter to build complete URL with graph parameter
